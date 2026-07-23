@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pm-tool | サーバー電源管理</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card-bg: #ffffff;
+    --border: #e0e4ec;
+    --text: #1f2430;
+    --text-muted: #6b7280;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+    --success: #16a34a;
+    --warn: #d97706;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .hidden { display: none !important; }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-size: 14px;
+    background: var(--primary);
+    color: #fff;
+    transition: background .15s;
+  }
+  button:hover { background: var(--primary-hover); }
+  button.secondary { background: #6b7280; }
+  button.secondary:hover { background: #4b5563; }
+  button.danger { background: var(--danger); }
+  button.danger:hover { background: var(--danger-hover); }
+  button.small { padding: 4px 10px; font-size: 12px; margin-right: 4px; }
+  input, select, textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+  }
+  label { display: block; font-size: 13px; color: var(--text-muted); margin: 10px 0 4px; }
+
+  /* ---------- login ---------- */
+  #login-view {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-box {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px 32px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,.06);
+  }
+  .login-box h1 { margin: 0 0 4px; font-size: 22px; }
+  .login-box p { color: var(--text-muted); margin: 0 0 20px; font-size: 13px; }
+  .login-box form { display: flex; flex-direction: column; gap: 10px; }
+  .login-box button { margin-top: 6px; padding: 10px; }
+  .error-text { color: var(--danger); font-size: 13px; min-height: 18px; margin: 10px 0 0; }
+
+  /* ---------- app shell ---------- */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted); }
+
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 24px 0;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 10px 16px;
+  }
+  .tab-btn:hover { background: #eef1f7; color: var(--text); }
+  .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); background: #eef4ff; }
+
+  main, section.tab-content { padding: 20px 24px 60px; max-width: 1100px; margin: 0 auto; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .section-header h2 { font-size: 16px; margin: 0; }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .form-box { margin-bottom: 16px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .form-actions { margin-top: 16px; display: flex; gap: 8px; }
+  .hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
+  th { background: #f8f9fc; color: var(--text-muted); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+  .badge.ok, .badge.success, .badge.online { background: #dcfce7; color: var(--success); }
+  .badge.error, .badge.offline { background: #fee2e2; color: var(--danger); }
+  .badge.disabled { background: #f1f5f9; color: var(--text-muted); }
+  .badge.unknown { background: #fef3c7; color: var(--warn); }
+
+  .weekday-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+  .weekday-picker label {
+    display: flex; align-items: center; gap: 4px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 6px 10px; font-size: 13px; color: var(--text); cursor: pointer; margin: 0;
+  }
+  .weekday-picker input { width: auto; }
+
+  .filters { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .filters > div { min-width: 140px; }
+  .filters label { margin-top: 0; }
+
+  .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 14px; }
+
+  .toast {
+    position: fixed; bottom: 20px; right: 20px;
+    background: #1f2430; color: #fff; padding: 10px 16px;
+    border-radius: var(--radius); font-size: 13px; opacity: 0;
+    transform: translateY(10px); transition: all .2s; pointer-events: none; z-index: 100;
+    max-width: 360px; white-space: pre-wrap;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--danger); }
+  .toast.success { background: var(--success); }
+
+  .msg-cell { max-width: 340px; white-space: pre-wrap; word-break: break-word; font-size: 12px; color: var(--text-muted); }
+  .muted { color: var(--text-muted); }
+  .radio-group { display: flex; gap: 16px; margin-top: 6px; }
+  .radio-group label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); margin: 0; }
+  .radio-group input { width: auto; }
+</style>
+</head>
+<body>
+
+<!-- ============ ログイン画面 ============ -->
+<div id="login-view">
+  <div class="login-box">
+    <h1>🔌 pm-tool</h1>
+    <p>サーバー電源管理ツール</p>
+    <form id="login-form">
+      <input type="text" id="login-username" placeholder="ユーザー名" autocomplete="username" required>
+      <input type="password" id="login-password" placeholder="パスワード" autocomplete="current-password" required>
+      <button type="submit">ログイン</button>
+    </form>
+    <p id="login-error" class="error-text"></p>
+  </div>
+</div>
+
+<!-- ============ アプリ本体 ============ -->
+<div id="app-view" class="hidden">
+  <header>
+    <h1>🔌 pm-tool</h1>
+    <div class="header-right">
+      <span id="current-username"></span>
+      <button class="secondary small" id="logout-btn">ログアウト</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="servers">サーバー</button>
+    <button class="tab-btn" data-tab="schedules">スケジュール</button>
+    <button class="tab-btn" data-tab="logs">実行ログ</button>
+    <button class="tab-btn" data-tab="users">ユーザー管理</button>
+  </nav>
+
+  <main>
+    <!-- ---------- サーバー タブ ---------- -->
+    <section id="tab-servers" class="tab-content active">
+      <div class="section-header">
+        <h2>登録済みサーバー</h2>
+        <button id="show-add-server-btn">+ サーバーを登録</button>
+      </div>
+
+      <div id="server-form-box" class="card form-box hidden">
+        <h3 id="server-form-title">サーバーを登録</h3>
+        <input type="hidden" id="server-id">
+        <div class="form-grid">
+          <div>
+            <label>表示名</label>
+            <input type="text" id="server-name" placeholder="例: h-1" required>
+          </div>
+          <div>
+            <label>ホスト(IPアドレス / ホスト名)</label>
+            <input type="text" id="server-host" placeholder="例: 192.168.0.20" required>
+          </div>
+          <div>
+            <label>SSHポート</label>
+            <input type="number" id="server-ssh-port" value="22" required>
+          </div>
+          <div>
+            <label>SSHユーザー</label>
+            <input type="text" id="server-ssh-user" placeholder="例: hit" required>
+          </div>
+        </div>
+
+        <label>SSH認証方式</label>
+        <div class="radio-group">
+          <label><input type="radio" name="server-auth-type" value="key" checked> 秘密鍵</label>
+          <label><input type="radio" name="server-auth-type" value="password"> パスワード</label>
+        </div>
+
+        <label id="server-secret-label">秘密鍵(PEM形式をそのまま貼り付け)</label>
+        <textarea id="server-ssh-secret" rows="4" placeholder="編集時は空欄のままなら変更されません"></textarea>
+        <div class="hint" id="server-secret-hint"></div>
+
+        <div id="server-passphrase-box">
+          <label>秘密鍵のパスフレーズ(任意)</label>
+          <input type="password" id="server-ssh-passphrase" placeholder="設定していない場合は空欄">
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label>MACアドレス(WOL起動用)</label>
+            <input type="text" id="server-mac" placeholder="例: aa:bb:cc:dd:ee:ff">
+          </div>
+          <div>
+            <label>ブロードキャストIP(任意)</label>
+            <input type="text" id="server-broadcast" placeholder="例: 192.168.0.255 (未指定なら255.255.255.255)">
+          </div>
+        </div>
+
+        <label>シャットダウンコマンド</label>
+        <input type="text" id="server-shutdown-command" value="sudo shutdown -h now">
+        <div class="hint">SSHユーザーがsudoでこのコマンドをパスワードなしで実行できる必要があります(README参照)</div>
+
+        <label><input type="checkbox" id="server-enabled" checked style="width:auto;"> 有効化する</label>
+
+        <div class="form-actions">
+          <button id="server-form-save-btn">保存</button>
+          <button class="secondary" id="server-form-cancel-btn">キャンセル</button>
+        </div>
+        <p class="error-text" id="server-form-error"></p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>名前</th><th>ホスト</th><th>状態</th><th>有効</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="servers-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- ---------- スケジュール タブ ---------- -->
+    <section id="tab-schedules" class="tab-content">
+      <div class="section-header">
+        <h2>スケジュール</h2>
+        <button id="show-add-schedule-btn">+ スケジュールを追加</button>
+      </div>
+
+      <div id="schedule-form-box" class="card form-box hidden">
+        <h3 id="schedule-form-title">スケジュールを追加</h3>
+        <input type="hidden" id="schedule-id">
+        <div class="form-grid">
+          <div>
+            <label>対象サーバー</label>
+            <select id="schedule-server"></select>
+          </div>
+          <div>
+            <label>アクション</label>
+            <select id="schedule-action">
+              <option value="shutdown">シャットダウン</option>
+              <option value="start">起動(WOL)</option>
+            </select>
+          </div>
+        </div>
+
+        <label>実行タイミング</label>
+        <div class="weekday-picker" id="schedule-weekdays">
+          <label><input type="checkbox" value="1"> 月</label>
+          <label><input type="checkbox" value="2"> 火</label>
+          <label><input type="checkbox" value="3"> 水</label>
+          <label><input type="checkbox" value="4"> 木</label>
+          <label><input type="checkbox" value="5"> 金</label>
+          <label><input type="checkbox" value="6"> 土</label>
+          <label><input type="checkbox" value="0"> 日</label>
+        </div>
+        <div class="form-grid" style="margin-top:8px;">
+          <div>
+            <label>時刻</label>
+            <input type="time" id="schedule-time" value="23:00">
+          </div>
+        </div>
+
+        <label>
+          <input type="checkbox" id="schedule-advanced-toggle" style="width:auto;">
+          詳細設定(cron形式で直接入力)
+        </label>
+        <div id="schedule-cron-box" class="hidden">
+          <input type="text" id="schedule-cron" placeholder="分 時 日 月 曜日 (例: 0 23 * * 1-5)">
+          <div class="hint">上の曜日/時刻の指定より、この欄が優先されます</div>
+        </div>
+
+        <label><input type="checkbox" id="schedule-enabled" checked style="width:auto;"> 有効化する</label>
+
+        <div class="form-actions">
+          <button id="schedule-form-save-btn">保存</button>
+          <button class="secondary" id="schedule-form-cancel-btn">キャンセル</button>
+        </div>
+        <p class="error-text" id="schedule-form-error"></p>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>サーバー</th><th>アクション</th><th>cron</th><th>有効</th><th>操作</th></tr>
+        </thead>
+        <tbody id="schedules-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- ---------- 実行ログ タブ ---------- -->
+    <section id="tab-logs" class="tab-content">
+      <div class="section-header"><h2>実行ログ</h2></div>
+
+      <div class="filters">
+        <div>
+          <label>サーバー</label>
+          <select id="log-filter-server"><option value="">すべて</option></select>
+        </div>
+        <div>
+          <label>アクション</label>
+          <select id="log-filter-action">
+            <option value="">すべて</option>
+            <option value="shutdown">シャットダウン</option>
+            <option value="start">起動</option>
+          </select>
+        </div>
+        <div>
+          <label>ステータス</label>
+          <select id="log-filter-status">
+            <option value="">すべて</option>
+            <option value="success">成功</option>
+            <option value="error">失敗</option>
+          </select>
+        </div>
+        <div><button id="log-filter-apply-btn">絞り込み</button></div>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>日時</th><th>サーバー</th><th>アクション</th><th>トリガー</th><th>結果</th><th>メッセージ</th></tr>
+        </thead>
+        <tbody id="logs-tbody"></tbody>
+      </table>
+
+      <div class="pagination">
+        <button class="secondary small" id="log-prev-btn">前へ</button>
+        <span class="muted" id="log-page-label" style="align-self:center; font-size:13px;"></span>
+        <button class="secondary small" id="log-next-btn">次へ</button>
+      </div>
+    </section>
+
+    <!-- ---------- ユーザー管理 タブ ---------- -->
+    <section id="tab-users" class="tab-content">
+      <div class="section-header">
+        <h2>ユーザー管理</h2>
+        <button id="show-add-user-btn">+ ユーザーを追加</button>
+      </div>
+
+      <div id="user-form-box" class="card form-box hidden">
+        <h3>ユーザーを追加</h3>
+        <label>ユーザー名</label>
+        <input type="text" id="user-username">
+        <label>パスワード(8文字以上)</label>
+        <input type="password" id="user-password">
+        <div class="form-actions">
+          <button id="user-form-save-btn">追加</button>
+          <button class="secondary" id="user-form-cancel-btn">キャンセル</button>
+        </div>
+        <p class="error-text" id="user-form-error"></p>
+      </div>
+
+      <table>
+        <thead><tr><th>ユーザー名</th><th>作成日時</th><th>操作</th></tr></thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TOKEN_KEY = "pm_tool_token";
+const state = {
+  servers: [],
+  schedules: [],
+  logs: { items: [], limit: 20, offset: 0 },
+};
+
+// ============================================================
+// API ヘルパー
+// ============================================================
+async function api(path, options = {}) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers = Object.assign(
+    { "Content-Type": "application/json" },
+    options.headers || {},
+    token ? { Authorization: `Bearer ${token}` } : {}
+  );
+  const res = await fetch(path, Object.assign({}, options, { headers }));
+  if (res.status === 401) {
+    logout();
+    throw new Error("認証エラーです。再度ログインしてください。");
+  }
+  if (res.status === 204) return null;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail = data && data.detail ? data.detail : `エラーが発生しました (${res.status})`;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return data;
+}
+
+function showToast(message, type = "") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = "toast show " + type;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { toast.className = "toast " + type; }, 4000);
+}
+
+// ============================================================
+// 認証
+// ============================================================
+document.getElementById("login-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = document.getElementById("login-username").value.trim();
+  const password = document.getElementById("login-password").value;
+  const errorEl = document.getElementById("login-error");
+  errorEl.textContent = "";
+  try {
+    const data = await api("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    });
+    localStorage.setItem(TOKEN_KEY, data.access_token);
+    await enterApp();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+});
+
+document.getElementById("logout-btn").addEventListener("click", logout);
+
+function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  document.getElementById("app-view").classList.add("hidden");
+  document.getElementById("login-view").classList.remove("hidden");
+}
+
+async function enterApp() {
+  const me = await api("/api/auth/me");
+  document.getElementById("current-username").textContent = `👤 ${me.username}`;
+  document.getElementById("login-view").classList.add("hidden");
+  document.getElementById("app-view").classList.remove("hidden");
+  await refreshServers();
+  await refreshSchedules();
+  await refreshLogs();
+  await refreshUsers();
+}
+
+// ============================================================
+// タブ切り替え
+// ============================================================
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach((c) => c.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+  });
+});
+
+// ============================================================
+// サーバー管理
+// ============================================================
+const serverFormBox = document.getElementById("server-form-box");
+
+document.getElementById("show-add-server-btn").addEventListener("click", () => openServerForm());
+document.getElementById("server-form-cancel-btn").addEventListener("click", () => serverFormBox.classList.add("hidden"));
+
+document.querySelectorAll('input[name="server-auth-type"]').forEach((el) => {
+  el.addEventListener("change", updateServerAuthTypeUI);
+});
+
+function updateServerAuthTypeUI() {
+  const type = document.querySelector('input[name="server-auth-type"]:checked').value;
+  document.getElementById("server-secret-label").textContent =
+    type === "key" ? "秘密鍵(PEM形式をそのまま貼り付け)" : "SSHパスワード";
+  document.getElementById("server-passphrase-box").classList.toggle("hidden", type !== "key");
+}
+
+function openServerForm(server) {
+  document.getElementById("server-form-title").textContent = server ? "サーバーを編集" : "サーバーを登録";
+  document.getElementById("server-id").value = server ? server.id : "";
+  document.getElementById("server-name").value = server ? server.name : "";
+  document.getElementById("server-host").value = server ? server.host : "";
+  document.getElementById("server-ssh-port").value = server ? server.ssh_port : 22;
+  document.getElementById("server-ssh-user").value = server ? server.ssh_user : "";
+  document.querySelector(`input[name="server-auth-type"][value="${server ? server.auth_type : "key"}"]`).checked = true;
+  document.getElementById("server-ssh-secret").value = "";
+  document.getElementById("server-secret-hint").textContent = server
+    ? (server.has_secret ? "登録済みの認証情報があります。変更する場合のみ入力してください。" : "認証情報が未登録です。")
+    : "";
+  document.getElementById("server-ssh-passphrase").value = "";
+  document.getElementById("server-mac").value = server && server.mac_address ? server.mac_address : "";
+  document.getElementById("server-broadcast").value = server && server.broadcast_ip ? server.broadcast_ip : "";
+  document.getElementById("server-shutdown-command").value = server ? server.shutdown_command : "sudo shutdown -h now";
+  document.getElementById("server-enabled").checked = server ? server.enabled : true;
+  document.getElementById("server-form-error").textContent = "";
+  updateServerAuthTypeUI();
+  serverFormBox.classList.remove("hidden");
+}
+
+document.getElementById("server-form-save-btn").addEventListener("click", async () => {
+  const id = document.getElementById("server-id").value;
+  const payload = {
+    name: document.getElementById("server-name").value.trim(),
+    host: document.getElementById("server-host").value.trim(),
+    ssh_port: parseInt(document.getElementById("server-ssh-port").value, 10) || 22,
+    ssh_user: document.getElementById("server-ssh-user").value.trim(),
+    auth_type: document.querySelector('input[name="server-auth-type"]:checked').value,
+    mac_address: document.getElementById("server-mac").value.trim() || null,
+    broadcast_ip: document.getElementById("server-broadcast").value.trim() || null,
+    shutdown_command: document.getElementById("server-shutdown-command").value.trim() || "sudo shutdown -h now",
+    enabled: document.getElementById("server-enabled").checked,
+  };
+  const secret = document.getElementById("server-ssh-secret").value;
+  if (secret) payload.ssh_secret = secret;
+  const passphrase = document.getElementById("server-ssh-passphrase").value;
+  if (passphrase) payload.ssh_key_passphrase = passphrase;
+
+  const errorEl = document.getElementById("server-form-error");
+  errorEl.textContent = "";
+  try {
+    if (id) {
+      await api(`/api/servers/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+    } else {
+      await api("/api/servers", { method: "POST", body: JSON.stringify(payload) });
+    }
+    serverFormBox.classList.add("hidden");
+    showToast("サーバー情報を保存しました", "success");
+    await refreshServers();
+    await refreshSchedules();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+});
+
+async function refreshServers() {
+  state.servers = await api("/api/servers");
+  renderServers();
+  renderServerOptions();
+}
+
+function renderServers() {
+  const tbody = document.getElementById("servers-tbody");
+  if (state.servers.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">登録されているサーバーはありません</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.servers.map((s) => `
+    <tr data-id="${s.id}">
+      <td><strong>${escapeHtml(s.name)}</strong><div class="hint">${escapeHtml(s.ssh_user)}@${escapeHtml(s.host)}:${s.ssh_port}</div></td>
+      <td>${escapeHtml(s.host)}</td>
+      <td><span class="badge unknown" data-status-for="${s.id}">未確認</span></td>
+      <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
+      <td>
+        <button class="small" data-action="ping" data-id="${s.id}">疎通確認</button>
+        <button class="small" data-action="start" data-id="${s.id}">起動</button>
+        <button class="small danger" data-action="shutdown" data-id="${s.id}">シャットダウン</button>
+        <button class="small secondary" data-action="edit" data-id="${s.id}">編集</button>
+        <button class="small danger" data-action="delete" data-id="${s.id}">削除</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("servers-tbody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const server = state.servers.find((s) => String(s.id) === id);
+  const action = btn.dataset.action;
+
+  if (action === "edit") return openServerForm(server);
+
+  if (action === "delete") {
+    if (!confirm(`「${server.name}」を削除しますか?(関連するスケジュールも削除されます)`)) return;
+    await api(`/api/servers/${id}`, { method: "DELETE" });
+    showToast("削除しました", "success");
+    await refreshServers();
+    await refreshSchedules();
+    return;
+  }
+
+  if (action === "ping") {
+    const badge = document.querySelector(`[data-status-for="${id}"]`);
+    badge.textContent = "確認中...";
+    try {
+      const res = await api(`/api/servers/${id}/status`);
+      badge.textContent = res.online ? "オンライン" : "オフライン";
+      badge.className = "badge " + (res.online ? "online" : "offline");
+    } catch (err) {
+      badge.textContent = "エラー";
+      badge.className = "badge error";
+    }
+    return;
+  }
+
+  if (action === "shutdown" || action === "start") {
+    const label = action === "shutdown" ? "シャットダウン" : "起動(WOL)";
+    if (!confirm(`「${server.name}」に対して${label}を実行します。よろしいですか?`)) return;
+    try {
+      const log = await api(`/api/servers/${id}/action`, {
+        method: "POST",
+        body: JSON.stringify({ action }),
+      });
+      showToast(`${label}を実行しました: ${log.message}`, log.status === "success" ? "success" : "error");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+    await refreshLogs();
+  }
+});
+
+// ============================================================
+// スケジュール管理
+// ============================================================
+const scheduleFormBox = document.getElementById("schedule-form-box");
+
+document.getElementById("show-add-schedule-btn").addEventListener("click", () => openScheduleForm());
+document.getElementById("schedule-form-cancel-btn").addEventListener("click", () => scheduleFormBox.classList.add("hidden"));
+document.getElementById("schedule-advanced-toggle").addEventListener("change", (e) => {
+  document.getElementById("schedule-cron-box").classList.toggle("hidden", !e.target.checked);
+});
+
+function renderServerOptions() {
+  const select = document.getElementById("schedule-server");
+  select.innerHTML = state.servers.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+  const logSelect = document.getElementById("log-filter-server");
+  logSelect.innerHTML = '<option value="">すべて</option>' +
+    state.servers.map((s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+}
+
+function openScheduleForm(schedule) {
+  document.getElementById("schedule-form-title").textContent = schedule ? "スケジュールを編集" : "スケジュールを追加";
+  document.getElementById("schedule-id").value = schedule ? schedule.id : "";
+  document.getElementById("schedule-server").value = schedule ? schedule.server_id : (state.servers[0] ? state.servers[0].id : "");
+  document.getElementById("schedule-action").value = schedule ? schedule.action : "shutdown";
+  document.getElementById("schedule-enabled").checked = schedule ? schedule.enabled : true;
+  document.getElementById("schedule-advanced-toggle").checked = !!schedule;
+  document.getElementById("schedule-cron-box").classList.toggle("hidden", !schedule);
+  document.getElementById("schedule-cron").value = schedule ? schedule.cron_expression : "";
+  document.querySelectorAll("#schedule-weekdays input").forEach((cb) => (cb.checked = false));
+  document.getElementById("schedule-time").value = "23:00";
+  document.getElementById("schedule-form-error").textContent = "";
+  scheduleFormBox.classList.remove("hidden");
+}
+
+function buildCronFromSimpleForm() {
+  const time = document.getElementById("schedule-time").value; // HH:MM
+  const [hour, minute] = time.split(":");
+  const days = Array.from(document.querySelectorAll("#schedule-weekdays input:checked")).map((cb) => cb.value);
+  const dayField = days.length > 0 ? days.join(",") : "*";
+  return `${parseInt(minute, 10)} ${parseInt(hour, 10)} * * ${dayField}`;
+}
+
+document.getElementById("schedule-form-save-btn").addEventListener("click", async () => {
+  const id = document.getElementById("schedule-id").value;
+  const advanced = document.getElementById("schedule-advanced-toggle").checked;
+  const cron = advanced ? document.getElementById("schedule-cron").value.trim() : buildCronFromSimpleForm();
+
+  const payload = {
+    server_id: parseInt(document.getElementById("schedule-server").value, 10),
+    action: document.getElementById("schedule-action").value,
+    cron_expression: cron,
+    enabled: document.getElementById("schedule-enabled").checked,
+  };
+
+  const errorEl = document.getElementById("schedule-form-error");
+  errorEl.textContent = "";
+  try {
+    if (id) {
+      await api(`/api/schedules/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+    } else {
+      await api("/api/schedules", { method: "POST", body: JSON.stringify(payload) });
+    }
+    scheduleFormBox.classList.add("hidden");
+    showToast("スケジュールを保存しました", "success");
+    await refreshSchedules();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+});
+
+async function refreshSchedules() {
+  state.schedules = await api("/api/schedules");
+  renderSchedules();
+}
+
+function renderSchedules() {
+  const tbody = document.getElementById("schedules-tbody");
+  if (state.schedules.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">登録されているスケジュールはありません</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.schedules.map((s) => `
+    <tr data-id="${s.id}">
+      <td>${escapeHtml(s.server_name || "(削除済み)")}</td>
+      <td>${s.action === "shutdown" ? "シャットダウン" : "起動(WOL)"}</td>
+      <td><code>${escapeHtml(s.cron_expression)}</code></td>
+      <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
+      <td>
+        <button class="small secondary" data-action="edit" data-id="${s.id}">編集</button>
+        <button class="small danger" data-action="delete" data-id="${s.id}">削除</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("schedules-tbody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const schedule = state.schedules.find((s) => String(s.id) === id);
+
+  if (btn.dataset.action === "edit") return openScheduleForm(schedule);
+
+  if (btn.dataset.action === "delete") {
+    if (!confirm("このスケジュールを削除しますか?")) return;
+    await api(`/api/schedules/${id}`, { method: "DELETE" });
+    showToast("削除しました", "success");
+    await refreshSchedules();
+  }
+});
+
+// ============================================================
+// 実行ログ
+// ============================================================
+async function refreshLogs() {
+  const params = new URLSearchParams();
+  const serverId = document.getElementById("log-filter-server").value;
+  const action = document.getElementById("log-filter-action").value;
+  const status = document.getElementById("log-filter-status").value;
+  if (serverId) params.set("server_id", serverId);
+  if (action) params.set("action", action);
+  if (status) params.set("status", status);
+  params.set("limit", state.logs.limit);
+  params.set("offset", state.logs.offset);
+
+  state.logs.items = await api(`/api/logs?${params.toString()}`);
+  renderLogs();
+}
+
+function renderLogs() {
+  const tbody = document.getElementById("logs-tbody");
+  if (state.logs.items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">該当するログはありません</td></tr>`;
+  } else {
+    tbody.innerHTML = state.logs.items.map((l) => `
+      <tr>
+        <td>${formatDateTime(l.started_at)}</td>
+        <td>${escapeHtml(l.server_name || "-")}</td>
+        <td>${l.action === "shutdown" ? "シャットダウン" : "起動"}</td>
+        <td>${escapeHtml(l.triggered_by)}</td>
+        <td><span class="badge ${l.status}">${l.status === "success" ? "成功" : "失敗"}</span></td>
+        <td class="msg-cell">${escapeHtml(l.message || "")}</td>
+      </tr>
+    `).join("");
+  }
+  const page = Math.floor(state.logs.offset / state.logs.limit) + 1;
+  document.getElementById("log-page-label").textContent = `${page}ページ目`;
+  document.getElementById("log-prev-btn").disabled = state.logs.offset === 0;
+  document.getElementById("log-next-btn").disabled = state.logs.items.length < state.logs.limit;
+}
+
+document.getElementById("log-filter-apply-btn").addEventListener("click", () => {
+  state.logs.offset = 0;
+  refreshLogs();
+});
+document.getElementById("log-prev-btn").addEventListener("click", () => {
+  state.logs.offset = Math.max(0, state.logs.offset - state.logs.limit);
+  refreshLogs();
+});
+document.getElementById("log-next-btn").addEventListener("click", () => {
+  state.logs.offset += state.logs.limit;
+  refreshLogs();
+});
+
+// ============================================================
+// ユーザー管理
+// ============================================================
+const userFormBox = document.getElementById("user-form-box");
+document.getElementById("show-add-user-btn").addEventListener("click", () => {
+  document.getElementById("user-username").value = "";
+  document.getElementById("user-password").value = "";
+  document.getElementById("user-form-error").textContent = "";
+  userFormBox.classList.remove("hidden");
+});
+document.getElementById("user-form-cancel-btn").addEventListener("click", () => userFormBox.classList.add("hidden"));
+
+document.getElementById("user-form-save-btn").addEventListener("click", async () => {
+  const payload = {
+    username: document.getElementById("user-username").value.trim(),
+    password: document.getElementById("user-password").value,
+  };
+  const errorEl = document.getElementById("user-form-error");
+  errorEl.textContent = "";
+  try {
+    await api("/api/users", { method: "POST", body: JSON.stringify(payload) });
+    userFormBox.classList.add("hidden");
+    showToast("ユーザーを追加しました", "success");
+    await refreshUsers();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+});
+
+async function refreshUsers() {
+  const users = await api("/api/users");
+  const tbody = document.getElementById("users-tbody");
+  tbody.innerHTML = users.map((u) => `
+    <tr data-id="${u.id}">
+      <td>${escapeHtml(u.username)}</td>
+      <td>${formatDateTime(u.created_at)}</td>
+      <td>
+        <button class="small secondary" data-action="passwd" data-id="${u.id}">パスワード変更</button>
+        <button class="small danger" data-action="delete" data-id="${u.id}">削除</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("users-tbody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+
+  if (btn.dataset.action === "passwd") {
+    const newPassword = prompt("新しいパスワード(8文字以上)を入力してください");
+    if (!newPassword) return;
+    try {
+      await api(`/api/users/${id}/password`, { method: "PUT", body: JSON.stringify({ password: newPassword }) });
+      showToast("パスワードを変更しました", "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+
+  if (btn.dataset.action === "delete") {
+    if (!confirm("このユーザーを削除しますか?")) return;
+    try {
+      await api(`/api/users/${id}`, { method: "DELETE" });
+      showToast("削除しました", "success");
+      await refreshUsers();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  }
+});
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+}
+
+function formatDateTime(iso) {
+  if (!iso) return "-";
+  const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+  return d.toLocaleString("ja-JP");
+}
+
+// ============================================================
+// 起動処理
+// ============================================================
+(async function init() {
+  if (localStorage.getItem(TOKEN_KEY)) {
+    try {
+      await enterApp();
+    } catch (err) {
+      logout();
+    }
+  }
+})();
+</script>
+</body>
+</html>

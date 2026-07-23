@@ -1,0 +1,21 @@
+services:
+  pm-tool:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    container_name: pm-tool
+    # WOL(Wake-on-LAN)のブロードキャストパケットが同一LAN上の機器に確実に届くよう
+    # host networkモードを使用する(bridge network + NAT経由だと届かないことがあるため)。
+    # このため `ports:` 指定は不要(APP_PORTで指定したポートに直接ホストからアクセスできる)。
+    network_mode: host
+    environment:
+      APP_SECRET_KEY: ${APP_SECRET_KEY}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-90}
+      APP_PORT: ${APP_PORT:-8090}
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
