@@ -298,7 +298,7 @@ def list_servers(
     db: Session = Depends(get_db),
     _current_user: models.User = Depends(auth.get_current_user),
 ):
-    servers = db.query(models.Server).order_by(models.Server.id).all()
+    servers = db.query(models.Server).order_by(models.Server.name).all()
     return [_server_out(s) for s in servers]
 
 
