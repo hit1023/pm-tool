@@ -239,6 +239,24 @@ Macを管理対象に含める場合、Windows/LinuxのPCとは勝手が異な�
   - ターミナル: `sudo pmset -a womp 1` で有効化、`pmset -g | grep womp` で `womp 1` になっていることを確認(`womp`は"Wake On Magic Packet"の略)
 - **完全シャットダウンからは基本的に起動できません** — MacのWOLはWindows/Linuxと異なり、電源を落とした状態(シャットダウン)からの復帰には正式対応していません。**スリープ状態からの復帰のみ**が対象です。そのため、pm-toolでMacを管理する場合は、サーバー登録時の「シャットダウンコマンド」を`sudo shutdown -h now`ではなく`sudo pmset sleepnow`(スリープ)に変更することを推奨します。これならpm-toolの「シャットダウン」→「起動(WOL)」のサイクルが実際に機能します
 
+### 対象機がWindowsの場合の補足
+
+WindowsもLinuxと同様、コード変更なしで管理できます(シャットダウンコマンドが自由に設定できる作りのため)。ただし事前準備が必要です。
+
+- **OpenSSH Serverの有効化**(既定では入っていません)。PowerShell(管理者)で以下を実行:
+  ```powershell
+  Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+  Start-Service sshd
+  Set-Service -Name sshd -StartupType 'Automatic'
+  ```
+  (GUIからの場合は `設定 → アプリ → オプション機能 → 機能の追加 → OpenSSH サーバー`)
+- **シャットダウンコマンド**: サーバー登録時に `shutdown /s /t 0` を指定してください(Linuxの`sudo shutdown -h now`とは書式が異なります)。ローカルコンピュータのシャットダウンには管理者権限は不要な場合が多く、Linuxのsudoers設定に相当するものは基本的に不要です
+- **公開鍵認証を使う場合の注意**: Windows版OpenSSHは`authorized_keys`の配置場所とACL(アクセス権)がLinuxと異なります。管理者グループのアカウントでは`%ProgramData%\ssh\administrators_authorized_keys`に公開鍵を配置し、SYSTEM/Administratorsのみアクセス可能なACLに`icacls`で設定する必要があります(一般ユーザーでは`~\.ssh\authorized_keys`で通常のLinuxと同様の扱い)。設定を誤るとsshdが鍵を無視してパスワード認証にフォールバックするか拒否するので、うまくいかない場合はまずパスワード認証で動作確認することを推奨します
+- **WOLの有効化**:
+  - BIOS/UEFIで「Wake on LAN」相当の設定を有効化
+  - デバイスマネージャー → ネットワークアダプター → プロパティ →「電源の管理」タブで「このデバイスで、コンピューターのスタンバイ状態を解除できるようにする」をオン、「詳細設定」タブで「Wake on Magic Packet」を有効化
+  - **高速スタートアップを無効化することを推奨** — `コントロールパネル → 電源オプション → 電源ボタンの動作を選択 → 現在利用可能ではない設定を変更する →「高速スタートアップを有効にする」のチェックを外す`。有効なままだとシャットダウン後にNICがWOL待受状態にならず、起動できないことがあります
+
 ---
 
 ## データの永続化
