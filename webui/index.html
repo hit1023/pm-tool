@@ -165,7 +165,29 @@
   .radio-group { display: flex; gap: 16px; margin-top: 6px; }
   .radio-group label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); margin: 0; }
   .radio-group input { width: auto; }
+
+  .badge.online { cursor: pointer; }
+  .badge.online:hover { filter: brightness(0.9); text-decoration: underline; }
+
+  #console-overlay {
+    position: fixed; inset: 0; background: rgba(15, 18, 26, 0.85);
+    z-index: 200; display: flex; align-items: center; justify-content: center;
+  }
+  #console-box {
+    width: min(1000px, 92vw); height: min(640px, 86vh);
+    background: #1e1e1e; border-radius: 10px; overflow: hidden;
+    display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,.5);
+  }
+  #console-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: #14161c; color: #e5e7eb; font-size: 13px;
+  }
+  #console-header .status { color: #9ca3af; }
+  #console-close-btn { background: #374151; padding: 4px 12px; }
+  #console-close-btn:hover { background: #4b5563; }
+  #console-term-container { flex: 1; padding: 8px; overflow: hidden; }
 </style>
+<link rel="stylesheet" href="/vendor/xterm/xterm.css">
 </head>
 <body>
 
@@ -455,6 +477,20 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ---------- Webコンソール ---------- -->
+<div id="console-overlay" class="hidden">
+  <div id="console-box">
+    <div id="console-header">
+      <span id="console-title">コンソール</span>
+      <span class="status" id="console-status"></span>
+      <button id="console-close-btn">✕ 閉じる</button>
+    </div>
+    <div id="console-term-container"></div>
+  </div>
+</div>
+
+<script src="/vendor/xterm/xterm.js"></script>
+<script src="/vendor/xterm/addon-fit.js"></script>
 <script>
 const TOKEN_KEY = "pm_tool_token";
 const STATUS_POLL_INTERVAL_MS = 20000;
@@ -666,7 +702,7 @@ function renderServers() {
         s.credential_name ? escapeHtml(s.credential_name) : '<span style="color:var(--danger);">未設定</span>'
       }</div></td>
       <td>${escapeHtml(s.host)}</td>
-      <td><span class="badge unknown" data-status-for="${s.id}">未確認</span></td>
+      <td><span class="badge unknown" data-status-for="${s.id}" title="オンライン時はクリックでWebコンソールを開けます">未確認</span></td>
       <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
       <td>
         <button class="small" data-action="ping" data-id="${s.id}">疎通確認</button>
@@ -680,6 +716,13 @@ function renderServers() {
 }
 
 document.getElementById("servers-tbody").addEventListener("click", async (e) => {
+  const statusBadge = e.target.closest("[data-status-for]");
+  if (statusBadge && statusBadge.classList.contains("online")) {
+    const server = state.servers.find((s) => String(s.id) === statusBadge.dataset.statusFor);
+    if (server) openConsole(server);
+    return;
+  }
+
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
   const id = btn.dataset.id;
@@ -720,6 +763,98 @@ document.getElementById("servers-tbody").addEventListener("click", async (e) => 
     setTimeout(() => checkServerStatus(id), 15000);
   }
 });
+
+// ============================================================
+// Webコンソール
+// ============================================================
+const consoleOverlay = document.getElementById("console-overlay");
+const consoleStatusEl = document.getElementById("console-status");
+let consoleState = null; // { ws, term, fitAddon, resizeHandler }
+
+async function openConsole(server) {
+  document.getElementById("console-title").textContent = `🖥 ${server.name} (${server.host})`;
+  consoleStatusEl.textContent = "接続準備中...";
+  consoleOverlay.classList.remove("hidden");
+
+  let ticket;
+  try {
+    const res = await api(`/api/servers/${server.id}/console-ticket`, { method: "POST" });
+    ticket = res.ticket;
+  } catch (err) {
+    consoleStatusEl.textContent = `エラー: ${err.message}`;
+    return;
+  }
+
+  const container = document.getElementById("console-term-container");
+  container.innerHTML = "";
+  const term = new Terminal({
+    fontSize: 14,
+    cursorBlink: true,
+    theme: { background: "#1e1e1e" },
+  });
+  const fitAddon = new FitAddon.FitAddon();
+  term.loadAddon(fitAddon);
+  term.open(container);
+  fitAddon.fit();
+  term.focus();
+
+  const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
+  const ws = new WebSocket(`${wsProtocol}//${location.host}/ws/console/${server.id}?ticket=${encodeURIComponent(ticket)}`);
+  ws.binaryType = "arraybuffer";
+
+  const resizeHandler = () => {
+    fitAddon.fit();
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ pmtool_console_control: "resize", cols: term.cols, rows: term.rows }));
+    }
+  };
+  window.addEventListener("resize", resizeHandler);
+
+  ws.onopen = () => {
+    consoleStatusEl.textContent = "接続済み";
+    resizeHandler();
+  };
+  ws.onmessage = (event) => {
+    if (event.data instanceof ArrayBuffer) {
+      term.write(new Uint8Array(event.data));
+    } else {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "error") {
+          consoleStatusEl.textContent = `エラー: ${payload.message}`;
+          term.write(`\r\n\x1b[31m[pm-tool] ${payload.message}\x1b[0m\r\n`);
+        }
+      } catch (e) { /* ignore */ }
+    }
+  };
+  ws.onclose = () => {
+    consoleStatusEl.textContent = "切断されました";
+    term.write("\r\n\x1b[33m[pm-tool] 接続が終了しました\x1b[0m\r\n");
+  };
+  ws.onerror = () => {
+    consoleStatusEl.textContent = "接続エラー";
+  };
+
+  term.onData((data) => {
+    if (ws.readyState === WebSocket.OPEN) ws.send(data);
+  });
+
+  consoleState = { ws, term, fitAddon, resizeHandler };
+}
+
+function closeConsole() {
+  if (!consoleState) {
+    consoleOverlay.classList.add("hidden");
+    return;
+  }
+  window.removeEventListener("resize", consoleState.resizeHandler);
+  try { consoleState.ws.close(); } catch (e) { /* ignore */ }
+  try { consoleState.term.dispose(); } catch (e) { /* ignore */ }
+  consoleState = null;
+  consoleOverlay.classList.add("hidden");
+}
+
+document.getElementById("console-close-btn").addEventListener("click", closeConsole);
 
 // ============================================================
 // 認証情報管理

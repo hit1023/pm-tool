@@ -16,6 +16,7 @@ Dockerコンテナ1つだけで動作し、特定のホストや環境に依存�
 | スケジュール管理 | 曜日・時刻を選ぶだけ、またはcron形式で「毎日23時にシャットダウン」等を設定 |
 | 実行ログ | いつ・誰が(またはどのスケジュールが)・何を実行し・成功したか失敗したかを一覧表示 |
 | オンライン/オフライン確認 | SSHポートへの疎通確認で簡易的な稼働状態を表示 |
+| Webコンソール | オンライン中のサーバー名をクリックすると、ブラウザ上でSSH対話シェルが開く(xterm.js使用) |
 | 認証 | JWTによるログイン認証、ログイン失敗の連続でロックアウト |
 | ユーザー管理 | WebUIから利用者アカウントを追加・削除・パスワード変更 |
 | 認証情報の暗号化保存 | 登録したSSHパスワード/秘密鍵はDB上で暗号化して保存 |
@@ -220,6 +221,18 @@ ifconfig en0 | grep ether
 
 ---
 
+## Webコンソール
+
+「サーバー」タブで状態が**オンライン**と表示されているサーバーは、そのバッジをクリックするとブラウザ上にターミナルが開き、SSH経由で対話的にログインできます([xterm.js](https://xtermjs.org/)を使用、外部CDNには依存せずリポジトリに同梱)。
+
+- サーバー登録時に選択した「認証情報」でSSH接続します(認証情報が未設定、またはサーバーが無効化されている場合は開けません)
+- 接続の仕組み: WebUIから短命(30秒・1回限り)の接続チケットを発行してもらい、それを使って`/ws/console/{id}`のWebSocketへ接続 → サーバー側でSSHの対話シェル(pty)を開いて双方向に中継します。JWTトークン自体をWebSocket接続に使い回さないための仕組みです
+- OS問わず(Linux/macOS/Windowsの OpenSSH Server)同じ仕組みで動作します。ただしWindowsの古い`cmd.exe`は端末制御シーケンスの扱いが異なるため表示が乱れることがあります(PowerShellや最近のWindows Terminal相当の環境であれば問題ありません)
+- ウィンドウをリサイズすると、ターミナルのサイズ(行数・列数)も自動的に追従します
+- タブを切り替えたり他のサーバーを操作しても接続は維持されますが、ページを再読み込みすると切断されます
+
+---
+
 ## Wake-on-LANが届かない場合
 
 `network_mode: host`で起動していても、以下のような要因でWOLが届かないことがあります。
@@ -281,6 +294,7 @@ WindowsもLinuxと同様、コード変更なしで管理できます(シャッ�
 | スケジューラ | APScheduler(`SQLAlchemyJobStore`) |
 | SSH実行 | paramiko |
 | WOL送信 | Python標準`socket`によるマジックパケット自前生成 |
+| Webコンソール | FastAPI WebSocket + paramiko対話シェル、フロントエンドは`xterm.js`(MITライセンス、リポジトリに同梱) |
 | 認証 | JWT(`python-jose`) + bcrypt(`passlib`) |
 | 認証情報暗号化 | `cryptography`(Fernet) |
 
@@ -351,15 +365,17 @@ pm-tool/
 │   ├── requirements.txt
 │   ├── main.py                # FastAPIルーティング
 │   ├── database.py            # DB接続設定
-│   ├── models.py              # User/Server/Schedule/ExecutionLog
+│   ├── models.py              # User/Credential/Server/Schedule/ExecutionLog
 │   ├── schemas.py             # Pydanticスキーマ
 │   ├── auth.py                # JWT/パスワードハッシュ/ログイン制限
 │   ├── crypto.py              # SSH認証情報の暗号化/復号
 │   ├── ssh_actions.py         # SSH経由のシャットダウン実行
 │   ├── wol.py                 # WOLマジックパケット送信
-│   └── scheduler.py           # APScheduler管理
+│   ├── scheduler.py           # APScheduler管理
+│   └── console.py             # Webコンソール(WebSocket + SSH対話シェル)
 └── webui/
-    └── index.html              # フロントエンドSPA
+    ├── index.html              # フロントエンドSPA
+    └── vendor/xterm/           # xterm.js(同梱、MITライセンス)
 ```
 
 ---

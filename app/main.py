@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from . import auth, crypto, models, schemas, scheduler
+from . import auth, console, crypto, models, schemas, scheduler
 from .database import Base, SessionLocal, engine, get_db
 
 logging.basicConfig(level=logging.INFO)
@@ -101,6 +101,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="pm-tool", lifespan=lifespan)
+app.include_router(console.router)
 
 
 # ============================================================
