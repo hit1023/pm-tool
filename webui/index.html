@@ -420,11 +420,13 @@
 
 <script>
 const TOKEN_KEY = "pm_tool_token";
+const STATUS_POLL_INTERVAL_MS = 20000;
 const state = {
   servers: [],
   schedules: [],
   logs: { items: [], limit: 20, offset: 0 },
 };
+let statusPollTimer = null;
 
 // ============================================================
 // API ヘルパー
@@ -485,6 +487,10 @@ function logout() {
   localStorage.removeItem(TOKEN_KEY);
   document.getElementById("app-view").classList.add("hidden");
   document.getElementById("login-view").classList.remove("hidden");
+  if (statusPollTimer) {
+    clearInterval(statusPollTimer);
+    statusPollTimer = null;
+  }
 }
 
 async function enterApp() {
@@ -496,6 +502,9 @@ async function enterApp() {
   await refreshSchedules();
   await refreshLogs();
   await refreshUsers();
+
+  if (statusPollTimer) clearInterval(statusPollTimer);
+  statusPollTimer = setInterval(refreshAllStatuses, STATUS_POLL_INTERVAL_MS);
 }
 
 // ============================================================
@@ -590,6 +599,25 @@ async function refreshServers() {
   state.servers = await api("/api/servers");
   renderServers();
   renderServerOptions();
+  refreshAllStatuses();
+}
+
+async function checkServerStatus(id) {
+  const badge = document.querySelector(`[data-status-for="${id}"]`);
+  if (!badge) return;
+  badge.textContent = "確認中...";
+  try {
+    const res = await api(`/api/servers/${id}/status`);
+    badge.textContent = res.online ? "オンライン" : "オフライン";
+    badge.className = "badge " + (res.online ? "online" : "offline");
+  } catch (err) {
+    badge.textContent = "エラー";
+    badge.className = "badge error";
+  }
+}
+
+async function refreshAllStatuses() {
+  await Promise.all(state.servers.map((s) => checkServerStatus(s.id)));
 }
 
 function renderServers() {
@@ -634,16 +662,7 @@ document.getElementById("servers-tbody").addEventListener("click", async (e) => 
   }
 
   if (action === "ping") {
-    const badge = document.querySelector(`[data-status-for="${id}"]`);
-    badge.textContent = "確認中...";
-    try {
-      const res = await api(`/api/servers/${id}/status`);
-      badge.textContent = res.online ? "オンライン" : "オフライン";
-      badge.className = "badge " + (res.online ? "online" : "offline");
-    } catch (err) {
-      badge.textContent = "エラー";
-      badge.className = "badge error";
-    }
+    await checkServerStatus(id);
     return;
   }
 
@@ -660,6 +679,9 @@ document.getElementById("servers-tbody").addEventListener("click", async (e) => 
       showToast(err.message, "error");
     }
     await refreshLogs();
+    // シャットダウン/起動が実機に反映されるまで数秒かかるため、少し待ってから状態を再確認する
+    setTimeout(() => checkServerStatus(id), 5000);
+    setTimeout(() => checkServerStatus(id), 15000);
   }
 });
 
