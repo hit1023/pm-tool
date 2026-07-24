@@ -6,6 +6,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from . import auth, crypto, models, schemas, scheduler
@@ -15,6 +16,49 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("pm-tool")
 
 Base.metadata.create_all(bind=engine)
+
+
+def _migrate_schema() -> None:
+    """旧バージョン(サーバーにSSH認証情報を直接保持していた頃)からの移行処理。
+    servers.credential_id列を追加し、既存の認証情報をcredentialsテーブルへ移す。
+    新規インストールでは何もしない(冪等)。
+    """
+    with engine.connect() as conn:
+        columns = {row[1] for row in conn.execute(text("PRAGMA table_info(servers)"))}
+        if "credential_id" not in columns:
+            conn.execute(text("ALTER TABLE servers ADD COLUMN credential_id INTEGER"))
+            conn.commit()
+        if "ssh_secret_encrypted" not in columns:
+            return  # 旧カラム自体が存在しない(新規インストール)ので移行不要
+
+    db = SessionLocal()
+    try:
+        rows = db.execute(text(
+            "SELECT id, name, auth_type, ssh_secret_encrypted, ssh_key_passphrase_encrypted "
+            "FROM servers WHERE credential_id IS NULL AND ssh_secret_encrypted IS NOT NULL"
+        )).fetchall()
+        for row in rows:
+            credential = models.Credential(
+                name=f"{row.name}の認証情報",
+                auth_type=row.auth_type,
+                secret_encrypted=row.ssh_secret_encrypted,
+                passphrase_encrypted=row.ssh_key_passphrase_encrypted,
+            )
+            db.add(credential)
+            db.flush()
+            db.execute(
+                text(
+                    "UPDATE servers SET credential_id = :cid, "
+                    "ssh_secret_encrypted = NULL, ssh_key_passphrase_encrypted = NULL "
+                    "WHERE id = :sid"
+                ),
+                {"cid": credential.id, "sid": row.id},
+            )
+        db.commit()
+        if rows:
+            logger.info("%d件のサーバー認証情報を「認証情報」として移行しました", len(rows))
+    finally:
+        db.close()
 
 
 def _ensure_initial_admin() -> None:
@@ -39,6 +83,7 @@ def _ensure_initial_admin() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    _migrate_schema()
     _ensure_initial_admin()
     scheduler.start()
     yield
@@ -132,6 +177,93 @@ def delete_user(
 
 
 # ============================================================
+# credentials
+# ============================================================
+def _credential_out(credential: models.Credential) -> schemas.CredentialOut:
+    return schemas.CredentialOut(
+        id=credential.id,
+        name=credential.name,
+        auth_type=credential.auth_type,
+        created_at=credential.created_at,
+    )
+
+
+@app.get("/api/credentials", response_model=list[schemas.CredentialOut])
+def list_credentials(
+    db: Session = Depends(get_db),
+    _current_user: models.User = Depends(auth.get_current_user),
+):
+    credentials = db.query(models.Credential).order_by(models.Credential.id).all()
+    return [_credential_out(c) for c in credentials]
+
+
+@app.post("/api/credentials", response_model=schemas.CredentialOut, status_code=201)
+def create_credential(
+    payload: schemas.CredentialCreate,
+    db: Session = Depends(get_db),
+    _current_user: models.User = Depends(auth.get_current_user),
+):
+    credential = models.Credential(
+        name=payload.name,
+        auth_type=payload.auth_type,
+        secret_encrypted=crypto.encrypt(payload.secret),
+        passphrase_encrypted=crypto.encrypt(payload.passphrase),
+    )
+    db.add(credential)
+    db.commit()
+    db.refresh(credential)
+    return _credential_out(credential)
+
+
+@app.put("/api/credentials/{credential_id}", response_model=schemas.CredentialOut)
+def update_credential(
+    credential_id: int,
+    payload: schemas.CredentialUpdate,
+    db: Session = Depends(get_db),
+    _current_user: models.User = Depends(auth.get_current_user),
+):
+    credential = db.query(models.Credential).filter(models.Credential.id == credential_id).first()
+    if credential is None:
+        raise HTTPException(status_code=404, detail="認証情報が見つかりません")
+
+    data = payload.model_dump(exclude_unset=True)
+    if "secret" in data:
+        secret = data.pop("secret")
+        if secret:
+            credential.secret_encrypted = crypto.encrypt(secret)
+    if "passphrase" in data:
+        passphrase = data.pop("passphrase")
+        if passphrase:
+            credential.passphrase_encrypted = crypto.encrypt(passphrase)
+    for key, value in data.items():
+        setattr(credential, key, value)
+
+    db.commit()
+    db.refresh(credential)
+    return _credential_out(credential)
+
+
+@app.delete("/api/credentials/{credential_id}", status_code=204)
+def delete_credential(
+    credential_id: int,
+    db: Session = Depends(get_db),
+    _current_user: models.User = Depends(auth.get_current_user),
+):
+    credential = db.query(models.Credential).filter(models.Credential.id == credential_id).first()
+    if credential is None:
+        raise HTTPException(status_code=404, detail="認証情報が見つかりません")
+    using_servers = db.query(models.Server).filter(models.Server.credential_id == credential_id).all()
+    if using_servers:
+        names = "、".join(s.name for s in using_servers)
+        raise HTTPException(
+            status_code=400,
+            detail=f"この認証情報は次のサーバーで使用されているため削除できません: {names}",
+        )
+    db.delete(credential)
+    db.commit()
+
+
+# ============================================================
 # servers
 # ============================================================
 def _server_out(server: models.Server) -> schemas.ServerOut:
@@ -141,8 +273,8 @@ def _server_out(server: models.Server) -> schemas.ServerOut:
         host=server.host,
         ssh_port=server.ssh_port,
         ssh_user=server.ssh_user,
-        auth_type=server.auth_type,
-        has_secret=bool(server.ssh_secret_encrypted),
+        credential_id=server.credential_id,
+        credential_name=server.credential.name if server.credential else None,
         mac_address=server.mac_address,
         broadcast_ip=server.broadcast_ip,
         shutdown_command=server.shutdown_command,
@@ -160,20 +292,26 @@ def list_servers(
     return [_server_out(s) for s in servers]
 
 
+def _check_credential_exists(db: Session, credential_id: Optional[int]) -> None:
+    if credential_id is None:
+        return
+    if db.query(models.Credential).filter(models.Credential.id == credential_id).first() is None:
+        raise HTTPException(status_code=404, detail="指定した認証情報が見つかりません")
+
+
 @app.post("/api/servers", response_model=schemas.ServerOut, status_code=201)
 def create_server(
     payload: schemas.ServerCreate,
     db: Session = Depends(get_db),
     _current_user: models.User = Depends(auth.get_current_user),
 ):
+    _check_credential_exists(db, payload.credential_id)
     server = models.Server(
         name=payload.name,
         host=payload.host,
         ssh_port=payload.ssh_port,
         ssh_user=payload.ssh_user,
-        auth_type=payload.auth_type,
-        ssh_secret_encrypted=crypto.encrypt(payload.ssh_secret),
-        ssh_key_passphrase_encrypted=crypto.encrypt(payload.ssh_key_passphrase),
+        credential_id=payload.credential_id,
         mac_address=payload.mac_address,
         broadcast_ip=payload.broadcast_ip,
         shutdown_command=payload.shutdown_command,
@@ -197,14 +335,8 @@ def update_server(
         raise HTTPException(status_code=404, detail="サーバーが見つかりません")
 
     data = payload.model_dump(exclude_unset=True)
-    if "ssh_secret" in data:
-        secret = data.pop("ssh_secret")
-        if secret:
-            server.ssh_secret_encrypted = crypto.encrypt(secret)
-    if "ssh_key_passphrase" in data:
-        passphrase = data.pop("ssh_key_passphrase")
-        if passphrase:
-            server.ssh_key_passphrase_encrypted = crypto.encrypt(passphrase)
+    if "credential_id" in data:
+        _check_credential_exists(db, data["credential_id"])
     for key, value in data.items():
         setattr(server, key, value)
 

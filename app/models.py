@@ -19,6 +19,19 @@ class User(Base):
     created_at = Column(DateTime, default=utcnow)
 
 
+class Credential(Base):
+    __tablename__ = "credentials"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    auth_type = Column(String, nullable=False, default="key")  # "key" | "password"
+    secret_encrypted = Column(Text, nullable=False)  # 秘密鍵本文 or パスワード(暗号化済み)
+    passphrase_encrypted = Column(Text, nullable=True)  # 秘密鍵のパスフレーズ(暗号化済み、任意)
+    created_at = Column(DateTime, default=utcnow)
+
+    servers = relationship("Server", back_populates="credential")
+
+
 class Server(Base):
     __tablename__ = "servers"
 
@@ -27,15 +40,14 @@ class Server(Base):
     host = Column(String, nullable=False)
     ssh_port = Column(Integer, nullable=False, default=22)
     ssh_user = Column(String, nullable=False)
-    auth_type = Column(String, nullable=False, default="key")  # "key" | "password"
-    ssh_secret_encrypted = Column(Text, nullable=True)  # 秘密鍵本文 or パスワード(暗号化済み)
-    ssh_key_passphrase_encrypted = Column(Text, nullable=True)
+    credential_id = Column(Integer, ForeignKey("credentials.id"), nullable=True)
     mac_address = Column(String, nullable=True)
     broadcast_ip = Column(String, nullable=True)
     shutdown_command = Column(String, nullable=False, default="sudo shutdown -h now")
     enabled = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, default=utcnow)
 
+    credential = relationship("Credential", back_populates="servers")
     schedules = relationship("Schedule", back_populates="server", cascade="all, delete-orphan")
 
 

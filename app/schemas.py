@@ -34,15 +34,35 @@ class PasswordChange(BaseModel):
     password: str = Field(min_length=8, max_length=200)
 
 
+# ---------- credentials ----------
+class CredentialCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    auth_type: Literal["key", "password"] = "key"
+    secret: str = Field(min_length=1)
+    passphrase: Optional[str] = None
+
+
+class CredentialUpdate(BaseModel):
+    name: Optional[str] = None
+    auth_type: Optional[Literal["key", "password"]] = None
+    secret: Optional[str] = None  # 指定時のみ上書き
+    passphrase: Optional[str] = None
+
+
+class CredentialOut(BaseModel):
+    id: int
+    name: str
+    auth_type: str
+    created_at: datetime
+
+
 # ---------- servers ----------
 class ServerCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     host: str
     ssh_port: int = 22
     ssh_user: str
-    auth_type: Literal["key", "password"] = "key"
-    ssh_secret: Optional[str] = None
-    ssh_key_passphrase: Optional[str] = None
+    credential_id: Optional[int] = None
     mac_address: Optional[str] = None
     broadcast_ip: Optional[str] = None
     shutdown_command: str = "sudo shutdown -h now"
@@ -54,9 +74,7 @@ class ServerUpdate(BaseModel):
     host: Optional[str] = None
     ssh_port: Optional[int] = None
     ssh_user: Optional[str] = None
-    auth_type: Optional[Literal["key", "password"]] = None
-    ssh_secret: Optional[str] = None
-    ssh_key_passphrase: Optional[str] = None
+    credential_id: Optional[int] = None
     mac_address: Optional[str] = None
     broadcast_ip: Optional[str] = None
     shutdown_command: Optional[str] = None
@@ -69,8 +87,8 @@ class ServerOut(BaseModel):
     host: str
     ssh_port: int
     ssh_user: str
-    auth_type: str
-    has_secret: bool
+    credential_id: Optional[int] = None
+    credential_name: Optional[str] = None
     mac_address: Optional[str] = None
     broadcast_ip: Optional[str] = None
     shutdown_command: str

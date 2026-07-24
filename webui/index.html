@@ -195,6 +195,7 @@
 
   <nav class="tabs">
     <button class="tab-btn active" data-tab="servers">サーバー</button>
+    <button class="tab-btn" data-tab="credentials">認証情報</button>
     <button class="tab-btn" data-tab="schedules">スケジュール</button>
     <button class="tab-btn" data-tab="logs">実行ログ</button>
     <button class="tab-btn" data-tab="users">ユーザー管理</button>
@@ -230,20 +231,14 @@
           </div>
         </div>
 
-        <label>SSH認証方式</label>
-        <div class="radio-group">
-          <label><input type="radio" name="server-auth-type" value="key" checked> 秘密鍵</label>
-          <label><input type="radio" name="server-auth-type" value="password"> パスワード</label>
+        <label>認証情報</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select id="server-credential" style="flex:1;">
+            <option value="">(未設定 — シャットダウンにはSSH認証情報が必要です)</option>
+          </select>
+          <button type="button" class="secondary small" id="server-credential-add-btn" style="white-space:nowrap;">+ 新規登録</button>
         </div>
-
-        <label id="server-secret-label">秘密鍵(PEM形式をそのまま貼り付け)</label>
-        <textarea id="server-ssh-secret" rows="4" placeholder="編集時は空欄のままなら変更されません"></textarea>
-        <div class="hint" id="server-secret-hint"></div>
-
-        <div id="server-passphrase-box">
-          <label>秘密鍵のパスフレーズ(任意)</label>
-          <input type="password" id="server-ssh-passphrase" placeholder="設定していない場合は空欄">
-        </div>
+        <div class="hint">SSHの秘密鍵/パスワードは「認証情報」タブでまとめて登録し、ここでは選択するだけです(複数サーバーで使い回せます)</div>
 
         <div class="form-grid">
           <div>
@@ -276,6 +271,48 @@
           </tr>
         </thead>
         <tbody id="servers-tbody"></tbody>
+      </table>
+    </section>
+
+    <!-- ---------- 認証情報 タブ ---------- -->
+    <section id="tab-credentials" class="tab-content">
+      <div class="section-header">
+        <h2>認証情報</h2>
+        <button id="show-add-credential-btn">+ 認証情報を登録</button>
+      </div>
+
+      <div id="credential-form-box" class="card form-box hidden">
+        <h3 id="credential-form-title">認証情報を登録</h3>
+        <input type="hidden" id="credential-id">
+        <label>名前</label>
+        <input type="text" id="credential-name" placeholder="例: 共通SSH鍵(hit)">
+
+        <label>認証方式</label>
+        <div class="radio-group">
+          <label><input type="radio" name="credential-auth-type" value="key" checked> 秘密鍵</label>
+          <label><input type="radio" name="credential-auth-type" value="password"> パスワード</label>
+        </div>
+
+        <label id="credential-secret-label">秘密鍵(PEM形式をそのまま貼り付け)</label>
+        <textarea id="credential-secret" rows="4" placeholder="編集時は空欄のままなら変更されません"></textarea>
+
+        <div id="credential-passphrase-box">
+          <label>秘密鍵のパスフレーズ(任意)</label>
+          <input type="password" id="credential-passphrase" placeholder="設定していない場合は空欄">
+        </div>
+
+        <div class="form-actions">
+          <button id="credential-form-save-btn">保存</button>
+          <button class="secondary" id="credential-form-cancel-btn">キャンセル</button>
+        </div>
+        <p class="error-text" id="credential-form-error"></p>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>名前</th><th>認証方式</th><th>作成日時</th><th>操作</th></tr>
+        </thead>
+        <tbody id="credentials-tbody"></tbody>
       </table>
     </section>
 
@@ -423,6 +460,7 @@ const TOKEN_KEY = "pm_tool_token";
 const STATUS_POLL_INTERVAL_MS = 20000;
 const state = {
   servers: [],
+  credentials: [],
   schedules: [],
   logs: { items: [], limit: 20, offset: 0 },
 };
@@ -498,6 +536,7 @@ async function enterApp() {
   document.getElementById("current-username").textContent = `👤 ${me.username}`;
   document.getElementById("login-view").classList.add("hidden");
   document.getElementById("app-view").classList.remove("hidden");
+  await refreshCredentials();
   await refreshServers();
   await refreshSchedules();
   await refreshLogs();
@@ -527,15 +566,18 @@ const serverFormBox = document.getElementById("server-form-box");
 document.getElementById("show-add-server-btn").addEventListener("click", () => openServerForm());
 document.getElementById("server-form-cancel-btn").addEventListener("click", () => serverFormBox.classList.add("hidden"));
 
-document.querySelectorAll('input[name="server-auth-type"]').forEach((el) => {
-  el.addEventListener("change", updateServerAuthTypeUI);
+document.getElementById("server-credential-add-btn").addEventListener("click", () => {
+  serverFormBox.classList.add("hidden");
+  document.querySelector('.tab-btn[data-tab="credentials"]').click();
+  openCredentialForm();
 });
 
-function updateServerAuthTypeUI() {
-  const type = document.querySelector('input[name="server-auth-type"]:checked').value;
-  document.getElementById("server-secret-label").textContent =
-    type === "key" ? "秘密鍵(PEM形式をそのまま貼り付け)" : "SSHパスワード";
-  document.getElementById("server-passphrase-box").classList.toggle("hidden", type !== "key");
+function renderServerCredentialOptions() {
+  const select = document.getElementById("server-credential");
+  const options = state.credentials
+    .map((c) => `<option value="${c.id}">${escapeHtml(c.name)}(${c.auth_type === "key" ? "秘密鍵" : "パスワード"})</option>`)
+    .join("");
+  select.innerHTML = `<option value="">(未設定 — シャットダウンにはSSH認証情報が必要です)</option>${options}`;
 }
 
 function openServerForm(server) {
@@ -545,38 +587,30 @@ function openServerForm(server) {
   document.getElementById("server-host").value = server ? server.host : "";
   document.getElementById("server-ssh-port").value = server ? server.ssh_port : 22;
   document.getElementById("server-ssh-user").value = server ? server.ssh_user : "";
-  document.querySelector(`input[name="server-auth-type"][value="${server ? server.auth_type : "key"}"]`).checked = true;
-  document.getElementById("server-ssh-secret").value = "";
-  document.getElementById("server-secret-hint").textContent = server
-    ? (server.has_secret ? "登録済みの認証情報があります。変更する場合のみ入力してください。" : "認証情報が未登録です。")
-    : "";
-  document.getElementById("server-ssh-passphrase").value = "";
+  renderServerCredentialOptions();
+  document.getElementById("server-credential").value = server && server.credential_id ? server.credential_id : "";
   document.getElementById("server-mac").value = server && server.mac_address ? server.mac_address : "";
   document.getElementById("server-broadcast").value = server && server.broadcast_ip ? server.broadcast_ip : "";
   document.getElementById("server-shutdown-command").value = server ? server.shutdown_command : "sudo shutdown -h now";
   document.getElementById("server-enabled").checked = server ? server.enabled : true;
   document.getElementById("server-form-error").textContent = "";
-  updateServerAuthTypeUI();
   serverFormBox.classList.remove("hidden");
 }
 
 document.getElementById("server-form-save-btn").addEventListener("click", async () => {
   const id = document.getElementById("server-id").value;
+  const credentialValue = document.getElementById("server-credential").value;
   const payload = {
     name: document.getElementById("server-name").value.trim(),
     host: document.getElementById("server-host").value.trim(),
     ssh_port: parseInt(document.getElementById("server-ssh-port").value, 10) || 22,
     ssh_user: document.getElementById("server-ssh-user").value.trim(),
-    auth_type: document.querySelector('input[name="server-auth-type"]:checked').value,
+    credential_id: credentialValue ? parseInt(credentialValue, 10) : null,
     mac_address: document.getElementById("server-mac").value.trim() || null,
     broadcast_ip: document.getElementById("server-broadcast").value.trim() || null,
     shutdown_command: document.getElementById("server-shutdown-command").value.trim() || "sudo shutdown -h now",
     enabled: document.getElementById("server-enabled").checked,
   };
-  const secret = document.getElementById("server-ssh-secret").value;
-  if (secret) payload.ssh_secret = secret;
-  const passphrase = document.getElementById("server-ssh-passphrase").value;
-  if (passphrase) payload.ssh_key_passphrase = passphrase;
 
   const errorEl = document.getElementById("server-form-error");
   errorEl.textContent = "";
@@ -628,7 +662,9 @@ function renderServers() {
   }
   tbody.innerHTML = state.servers.map((s) => `
     <tr data-id="${s.id}">
-      <td><strong>${escapeHtml(s.name)}</strong><div class="hint">${escapeHtml(s.ssh_user)}@${escapeHtml(s.host)}:${s.ssh_port}</div></td>
+      <td><strong>${escapeHtml(s.name)}</strong><div class="hint">${escapeHtml(s.ssh_user)}@${escapeHtml(s.host)}:${s.ssh_port} / 認証情報: ${
+        s.credential_name ? escapeHtml(s.credential_name) : '<span style="color:var(--danger);">未設定</span>'
+      }</div></td>
       <td>${escapeHtml(s.host)}</td>
       <td><span class="badge unknown" data-status-for="${s.id}">未確認</span></td>
       <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
@@ -682,6 +718,116 @@ document.getElementById("servers-tbody").addEventListener("click", async (e) => 
     // シャットダウン/起動が実機に反映されるまで数秒かかるため、少し待ってから状態を再確認する
     setTimeout(() => checkServerStatus(id), 5000);
     setTimeout(() => checkServerStatus(id), 15000);
+  }
+});
+
+// ============================================================
+// 認証情報管理
+// ============================================================
+const credentialFormBox = document.getElementById("credential-form-box");
+
+document.getElementById("show-add-credential-btn").addEventListener("click", () => openCredentialForm());
+document.getElementById("credential-form-cancel-btn").addEventListener("click", () => credentialFormBox.classList.add("hidden"));
+
+document.querySelectorAll('input[name="credential-auth-type"]').forEach((el) => {
+  el.addEventListener("change", updateCredentialAuthTypeUI);
+});
+
+function updateCredentialAuthTypeUI() {
+  const type = document.querySelector('input[name="credential-auth-type"]:checked').value;
+  document.getElementById("credential-secret-label").textContent =
+    type === "key" ? "秘密鍵(PEM形式をそのまま貼り付け)" : "SSHパスワード";
+  document.getElementById("credential-passphrase-box").classList.toggle("hidden", type !== "key");
+}
+
+function openCredentialForm(credential) {
+  document.getElementById("credential-form-title").textContent = credential ? "認証情報を編集" : "認証情報を登録";
+  document.getElementById("credential-id").value = credential ? credential.id : "";
+  document.getElementById("credential-name").value = credential ? credential.name : "";
+  document.querySelector(`input[name="credential-auth-type"][value="${credential ? credential.auth_type : "key"}"]`).checked = true;
+  document.getElementById("credential-secret").value = "";
+  document.getElementById("credential-secret").placeholder = credential
+    ? "登録済みです。変更する場合のみ入力してください"
+    : "";
+  document.getElementById("credential-passphrase").value = "";
+  document.getElementById("credential-form-error").textContent = "";
+  updateCredentialAuthTypeUI();
+  credentialFormBox.classList.remove("hidden");
+}
+
+document.getElementById("credential-form-save-btn").addEventListener("click", async () => {
+  const id = document.getElementById("credential-id").value;
+  const payload = {
+    name: document.getElementById("credential-name").value.trim(),
+    auth_type: document.querySelector('input[name="credential-auth-type"]:checked').value,
+  };
+  const secret = document.getElementById("credential-secret").value;
+  if (secret) payload.secret = secret;
+  const passphrase = document.getElementById("credential-passphrase").value;
+  if (passphrase) payload.passphrase = passphrase;
+
+  const errorEl = document.getElementById("credential-form-error");
+  errorEl.textContent = "";
+  if (!id && !secret) {
+    errorEl.textContent = "秘密鍵またはパスワードを入力してください";
+    return;
+  }
+  try {
+    if (id) {
+      await api(`/api/credentials/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+    } else {
+      await api("/api/credentials", { method: "POST", body: JSON.stringify(payload) });
+    }
+    credentialFormBox.classList.add("hidden");
+    showToast("認証情報を保存しました", "success");
+    await refreshCredentials();
+    await refreshServers();
+  } catch (err) {
+    errorEl.textContent = err.message;
+  }
+});
+
+async function refreshCredentials() {
+  state.credentials = await api("/api/credentials");
+  renderCredentials();
+}
+
+function renderCredentials() {
+  const tbody = document.getElementById("credentials-tbody");
+  if (state.credentials.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="muted">登録されている認証情報はありません</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = state.credentials.map((c) => `
+    <tr data-id="${c.id}">
+      <td><strong>${escapeHtml(c.name)}</strong></td>
+      <td>${c.auth_type === "key" ? "秘密鍵" : "パスワード"}</td>
+      <td>${formatDateTime(c.created_at)}</td>
+      <td>
+        <button class="small secondary" data-action="edit" data-id="${c.id}">編集</button>
+        <button class="small danger" data-action="delete" data-id="${c.id}">削除</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+document.getElementById("credentials-tbody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const credential = state.credentials.find((c) => String(c.id) === id);
+
+  if (btn.dataset.action === "edit") return openCredentialForm(credential);
+
+  if (btn.dataset.action === "delete") {
+    if (!confirm(`「${credential.name}」を削除しますか?`)) return;
+    try {
+      await api(`/api/credentials/${id}`, { method: "DELETE" });
+      showToast("削除しました", "success");
+      await refreshCredentials();
+    } catch (err) {
+      showToast(err.message, "error");
+    }
   }
 });
 

@@ -27,6 +27,10 @@ def _load_private_key(key_text: str, passphrase: str | None):
 
 def execute_shutdown(server, timeout: int = 10) -> tuple[str, str]:
     """SSH経由でシャットダウンコマンドを実行する。戻り値は (status, message)。"""
+    credential = server.credential
+    if credential is None:
+        return "error", "認証情報が設定されていません(「認証情報」タブで登録し、サーバー編集で選択してください)"
+
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
@@ -39,14 +43,14 @@ def execute_shutdown(server, timeout: int = 10) -> tuple[str, str]:
             auth_timeout=timeout,
         )
 
-        if server.auth_type == "key":
-            key_text = crypto.decrypt(server.ssh_secret_encrypted)
+        if credential.auth_type == "key":
+            key_text = crypto.decrypt(credential.secret_encrypted)
             if not key_text:
                 return "error", "秘密鍵が登録されていません"
-            passphrase = crypto.decrypt(server.ssh_key_passphrase_encrypted)
+            passphrase = crypto.decrypt(credential.passphrase_encrypted)
             connect_kwargs["pkey"] = _load_private_key(key_text, passphrase)
         else:
-            password = crypto.decrypt(server.ssh_secret_encrypted)
+            password = crypto.decrypt(credential.secret_encrypted)
             if not password:
                 return "error", "SSHパスワードが登録されていません"
             connect_kwargs["password"] = password
