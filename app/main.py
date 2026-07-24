@@ -60,6 +60,16 @@ def _migrate_schema() -> None:
     finally:
         db.close()
 
+    # 旧カラムはNOT NULL制約を持つが新モデルではINSERT時に値を渡さないため、
+    # 残したままだと新規サーバー登録が失敗する。移行完了後に列自体を削除する。
+    with engine.connect() as conn:
+        for col in ("auth_type", "ssh_secret_encrypted", "ssh_key_passphrase_encrypted"):
+            try:
+                conn.execute(text(f"ALTER TABLE servers DROP COLUMN {col}"))
+                conn.commit()
+            except Exception as e:
+                logger.warning("旧カラム%sの削除に失敗しました: %s", col, e)
+
 
 def _ensure_initial_admin() -> None:
     db = SessionLocal()
