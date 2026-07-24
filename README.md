@@ -181,11 +181,21 @@ sudo chmod 440 /etc/sudoers.d/pm-tool-shutdown
 
 (`hit`の部分は実際のSSHユーザー名に置き換えてください。`ALL=(ALL) NOPASSWD: ALL`のような広い許可は避け、必要なコマンドだけに絞ることを推奨します。)
 
+> **macOSの場合**: シャットダウンコマンドに`sudo pmset sleepnow`(スリープ、WOLでの復帰に対応)を使う場合は、NOPASSWD対象もそれに合わせてください。
+> ```bash
+> echo 'hit ALL=(ALL) NOPASSWD: /usr/bin/pmset sleepnow' | sudo tee /etc/sudoers.d/pm-tool-shutdown
+> sudo chmod 440 /etc/sudoers.d/pm-tool-shutdown
+> ```
+> (macOSの詳細・完全シャットダウンとの違いは後述の「Wake-on-LANが届かない場合 > 対象機がmacOSの場合の補足」を参照)
+
 ### MACアドレスの確認方法
 
 ```bash
 # 対象サーバー側で、WOLを使うオンボードNICのMACアドレスを確認
 ip link show <インターフェース名>
+
+# macOSの場合
+ifconfig en0 | grep ether
 ```
 
 ---
@@ -218,6 +228,16 @@ ip link show <インターフェース名>
 2. **有線LANが複数枚刺さっており、意図しない方(増設NIC等)に接続されている** — オンボードNICは対応していても、増設NICは完全シャットダウン(S5)からのWOLに対応していない場合があります
 3. **BIOS/UEFI側の「WOL起動時専用のブートソース」設定がNetwork(PXE)になっている** — 通常の起動順序とは別に、WOLで起動したときだけ参照される設定がある機種があります。「Local Hard Drive」相当に変更してください
 4. **pm-toolとブロードキャストが届かないセグメントに分かれている**(VLAN、別サブネット等) — サーバー登録時の「ブロードキャストIP」に、対象機と同じセグメントの直接ブロードキャストアドレス(例: `192.168.0.255`)を指定してください
+
+### 対象機がmacOSの場合の補足
+
+Macを管理対象に含める場合、Windows/LinuxのPCとは勝手が異なるので注意してください。
+
+- **有線LAN(Ethernet)接続が前提**です。Wi-Fi接続のMacはマジックパケットによる通常のWOLには対応していません(Wi-Fi経由の復帰には別途Bonjourスリーププロキシ対応ルーター等が必要で、本ツールの想定外です)
+- **有効化手順**:
+  - GUI: `システム設定 → バッテリー`(ノートブックは`バッテリー`、Mac mini/Studioは`エネルギー`)`→ オプション → 「ネットワークアクセスのためのスリープ解除」をオン`
+  - ターミナル: `sudo pmset -a womp 1` で有効化、`pmset -g | grep womp` で `womp 1` になっていることを確認(`womp`は"Wake On Magic Packet"の略)
+- **完全シャットダウンからは基本的に起動できません** — MacのWOLはWindows/Linuxと異なり、電源を落とした状態(シャットダウン)からの復帰には正式対応していません。**スリープ状態からの復帰のみ**が対象です。そのため、pm-toolでMacを管理する場合は、サーバー登録時の「シャットダウンコマンド」を`sudo shutdown -h now`ではなく`sudo pmset sleepnow`(スリープ)に変更することを推奨します。これならpm-toolの「シャットダウン」→「起動(WOL)」のサイクルが実際に機能します
 
 ---
 
