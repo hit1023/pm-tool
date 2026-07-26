@@ -6,17 +6,19 @@
 <title>pm-tool | サーバー電源管理</title>
 <style>
   :root {
-    --bg: #f4f6fb;
-    --card-bg: #ffffff;
-    --border: #e0e4ec;
-    --text: #1f2430;
-    --text-muted: #6b7280;
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --danger: #dc2626;
-    --danger-hover: #b91c1c;
-    --success: #16a34a;
-    --warn: #d97706;
+    color-scheme: dark;
+    --bg: #0d0f14;
+    --card-bg: #171a21;
+    --surface-alt: #1f232c;
+    --border: #2a2f3a;
+    --text: #e5e7eb;
+    --text-muted: #9199a8;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --success: #22c55e;
+    --warn: #f59e0b;
     --radius: 8px;
   }
   * { box-sizing: border-box; }
@@ -50,7 +52,7 @@
     border-radius: var(--radius);
     font-size: 14px;
     font-family: inherit;
-    background: #fff;
+    background: var(--surface-alt);
     color: var(--text);
   }
   label { display: block; font-size: 13px; color: var(--text-muted); margin: 10px 0 4px; }
@@ -69,7 +71,7 @@
     padding: 36px 32px;
     width: 320px;
     text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,.06);
+    box-shadow: 0 4px 24px rgba(0,0,0,.5);
   }
   .login-box h1 { margin: 0 0 4px; font-size: 22px; }
   .login-box p { color: var(--text-muted); margin: 0 0 20px; font-size: 13px; }
@@ -102,8 +104,8 @@
     border-radius: var(--radius) var(--radius) 0 0;
     padding: 10px 16px;
   }
-  .tab-btn:hover { background: #eef1f7; color: var(--text); }
-  .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); background: #eef4ff; }
+  .tab-btn:hover { background: var(--surface-alt); color: var(--text); }
+  .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); background: var(--surface-alt); }
 
   main, section.tab-content { padding: 20px 24px 60px; max-width: 1100px; margin: 0 auto; }
   .tab-content { display: none; }
@@ -126,14 +128,14 @@
 
   table { width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: var(--radius); overflow: hidden; }
   th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
-  th { background: #f8f9fc; color: var(--text-muted); font-weight: 600; }
+  th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; }
   tr:last-child td { border-bottom: none; }
 
   .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 12px; font-weight: 600; }
-  .badge.ok, .badge.success, .badge.online { background: #dcfce7; color: var(--success); }
-  .badge.error, .badge.offline { background: #fee2e2; color: var(--danger); }
-  .badge.disabled { background: #f1f5f9; color: var(--text-muted); }
-  .badge.unknown { background: #fef3c7; color: var(--warn); }
+  .badge.ok, .badge.success, .badge.online { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+  .badge.error, .badge.offline { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .badge.disabled { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
+  .badge.unknown { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
 
   .weekday-picker { display: flex; gap: 6px; flex-wrap: wrap; }
   .weekday-picker label {
