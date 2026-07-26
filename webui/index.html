@@ -166,8 +166,8 @@
   .radio-group label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text); margin: 0; }
   .radio-group input { width: auto; }
 
-  .badge.online { cursor: pointer; }
-  .badge.online:hover { filter: brightness(0.9); text-decoration: underline; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button:disabled:hover { filter: none; }
 
   #console-overlay {
     position: fixed; inset: 0; background: rgba(15, 18, 26, 0.85);
@@ -674,12 +674,15 @@ async function refreshServers() {
 
 async function checkServerStatus(id) {
   const badge = document.querySelector(`[data-status-for="${id}"]`);
+  const consoleBtn = document.querySelector(`[data-console-for="${id}"]`);
   if (!badge) return;
   badge.textContent = "確認中...";
+  if (consoleBtn) consoleBtn.disabled = true;
   try {
     const res = await api(`/api/servers/${id}/status`);
     badge.textContent = res.online ? "オンライン" : "オフライン";
     badge.className = "badge " + (res.online ? "online" : "offline");
+    if (consoleBtn) consoleBtn.disabled = !res.online;
   } catch (err) {
     badge.textContent = "エラー";
     badge.className = "badge error";
@@ -702,10 +705,11 @@ function renderServers() {
         s.credential_name ? escapeHtml(s.credential_name) : '<span style="color:var(--danger);">未設定</span>'
       }</div></td>
       <td>${escapeHtml(s.host)}</td>
-      <td><span class="badge unknown" data-status-for="${s.id}" title="オンライン時はクリックでWebコンソールを開けます">未確認</span></td>
+      <td><span class="badge unknown" data-status-for="${s.id}">未確認</span></td>
       <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
       <td>
         <button class="small" data-action="ping" data-id="${s.id}">疎通確認</button>
+        <button class="small" data-action="console" data-id="${s.id}" data-console-for="${s.id}" disabled title="オンライン時のみ利用できます">端末</button>
         <button class="small" data-action="start" data-id="${s.id}">起動</button>
         <button class="small danger" data-action="shutdown" data-id="${s.id}">シャットダウン</button>
         <button class="small secondary" data-action="edit" data-id="${s.id}">編集</button>
@@ -716,15 +720,8 @@ function renderServers() {
 }
 
 document.getElementById("servers-tbody").addEventListener("click", async (e) => {
-  const statusBadge = e.target.closest("[data-status-for]");
-  if (statusBadge && statusBadge.classList.contains("online")) {
-    const server = state.servers.find((s) => String(s.id) === statusBadge.dataset.statusFor);
-    if (server) openConsole(server);
-    return;
-  }
-
   const btn = e.target.closest("button[data-action]");
-  if (!btn) return;
+  if (!btn || btn.disabled) return;
   const id = btn.dataset.id;
   const server = state.servers.find((s) => String(s.id) === id);
   const action = btn.dataset.action;
@@ -742,6 +739,11 @@ document.getElementById("servers-tbody").addEventListener("click", async (e) => 
 
   if (action === "ping") {
     await checkServerStatus(id);
+    return;
+  }
+
+  if (action === "console") {
+    openConsole(server);
     return;
   }
 
