@@ -7,7 +7,7 @@
 <style>
   :root {
     color-scheme: dark;
-    --bg: #0a0d1a;
+    --bg: #050506;
     --glass: rgba(255, 255, 255, 0.07);
     --glass-strong: rgba(255, 255, 255, 0.11);
     --glass-input: rgba(255, 255, 255, 0.06);
@@ -17,9 +17,9 @@
     --border-soft: rgba(255, 255, 255, 0.09);
     --highlight: rgba(255, 255, 255, 0.34);
     --text: #f1f4fb;
-    --text-muted: #a9b2c9;
-    --primary: #4f8cff;
-    --primary-hover: #6aa0ff;
+    --text-muted: #a7a9b0;
+    --primary: #f2f3f5;
+    --primary-hover: #ffffff;
     --danger: #ff5c6c;
     --danger-hover: #ff7a87;
     --success: #34d399;
@@ -44,10 +44,10 @@
     min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
     background:
-      radial-gradient(900px 600px at 12% 8%, rgba(79, 140, 255, 0.45), transparent 60%),
-      radial-gradient(800px 600px at 88% 18%, rgba(168, 85, 247, 0.38), transparent 60%),
-      radial-gradient(900px 700px at 70% 95%, rgba(20, 184, 166, 0.30), transparent 60%),
-      radial-gradient(700px 500px at 5% 90%, rgba(236, 72, 153, 0.22), transparent 60%),
+      radial-gradient(900px 600px at 12% 8%, rgba(255, 255, 255, 0.16), transparent 60%),
+      radial-gradient(800px 600px at 88% 18%, rgba(190, 195, 210, 0.11), transparent 60%),
+      radial-gradient(900px 700px at 70% 95%, rgba(255, 255, 255, 0.10), transparent 60%),
+      radial-gradient(700px 500px at 5% 90%, rgba(160, 165, 180, 0.09), transparent 60%),
       var(--bg);
     background-attachment: fixed;
     color: var(--text);
@@ -61,16 +61,16 @@
     font-size: 14px;
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 48%, rgba(255, 255, 255, 0) 50%),
-      linear-gradient(180deg, rgba(96, 165, 250, 0.92), rgba(59, 100, 235, 0.88));
-    color: #fff;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+      linear-gradient(180deg, rgba(250, 250, 252, 0.96), rgba(176, 179, 188, 0.94));
+    color: #121316;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.55),
       inset 0 -1px 0 rgba(0, 0, 0, 0.18),
       0 1px 2px rgba(0, 0, 0, 0.35),
-      0 6px 14px rgba(40, 80, 200, 0.35);
+      0 6px 14px rgba(0, 0, 0, 0.45);
     transition: background .15s, transform .15s, box-shadow .15s, filter .15s;
   }
   button:hover { filter: brightness(1.12); transform: translateY(-2px); }
@@ -86,6 +86,7 @@
       linear-gradient(180deg, rgba(255, 110, 124, 0.92), rgba(220, 38, 56, 0.88));
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(220, 38, 56, 0.35);
   }
+  button.secondary, button.danger, .tab-btn { color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); }
   button.small { padding: 4px 10px; font-size: 12px; margin-right: 4px; border-radius: 9px; }
   input, select, textarea {
     width: 100%;
@@ -101,11 +102,11 @@
   }
   input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: rgba(79, 140, 255, 0.8);
+    border-color: rgba(255, 255, 255, 0.65);
     background: rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(79, 140, 255, 0.35), 0 0 18px rgba(79, 140, 255, 0.3);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(255, 255, 255, 0.20), 0 0 18px rgba(255, 255, 255, 0.12);
   }
-  select option { background: #1a1f33; color: var(--text); }
+  select option { background: #17181c; color: var(--text); }
   label { display: block; font-size: 13px; color: var(--text-muted); margin: 10px 0 4px; }
 
   /* ---------- glass surface ---------- */
@@ -173,7 +174,7 @@
     color: #fff;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.10));
     border-color: rgba(255, 255, 255, 0.3);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(79, 140, 255, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.45);
   }
 
   main, section.tab-content { padding: 24px 24px 60px; max-width: 1100px; margin: 0 auto; }
@@ -234,7 +235,7 @@
 
   .toast {
     position: fixed; bottom: 20px; right: 20px;
-    background: rgba(30, 36, 56, 0.6); color: #fff; padding: 11px 18px;
+    background: rgba(28, 29, 33, 0.65); color: #fff; padding: 11px 18px;
     border: 1px solid var(--border);
     backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
     box-shadow: var(--shadow), var(--edge);
@@ -256,13 +257,13 @@
   button:disabled:hover { filter: none; transform: none; }
 
   #console-overlay {
-    position: fixed; inset: 0; background: rgba(8, 10, 22, 0.55);
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     z-index: 200; display: flex; align-items: center; justify-content: center;
   }
   #console-box {
     width: min(1000px, 92vw); height: min(640px, 86vh);
-    background: rgba(18, 20, 30, 0.82);
+    background: rgba(14, 14, 16, 0.85);
     border: 1px solid var(--border);
     border-radius: 18px; overflow: hidden;
     display: flex; flex-direction: column;
@@ -279,10 +280,10 @@
 
   /* backdrop-filter 非対応ブラウザ・透過軽減設定向けのフォールバック */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    :root { --glass: rgba(30, 36, 58, 0.92); --glass-strong: rgba(45, 52, 80, 0.95); }
+    :root { --glass: rgba(28, 29, 33, 0.92); --glass-strong: rgba(44, 45, 50, 0.95); }
   }
   @media (prefers-reduced-transparency: reduce) {
-    :root { --glass: rgba(30, 36, 58, 0.96); --glass-strong: rgba(45, 52, 80, 0.98); }
+    :root { --glass: rgba(28, 29, 33, 0.96); --glass-strong: rgba(44, 45, 50, 0.98); }
   }
 </style>
 <link rel="stylesheet" href="/vendor/xterm/xterm.css">
@@ -890,7 +891,7 @@ async function openConsole(server) {
   const term = new Terminal({
     fontSize: 14,
     cursorBlink: true,
-    theme: { background: "#12141e" },
+    theme: { background: "#0e0e10" },
   });
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
