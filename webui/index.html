@@ -7,44 +7,89 @@
 <style>
   :root {
     color-scheme: dark;
-    --bg: #0d0f14;
-    --card-bg: #171a21;
-    --surface-alt: #1f232c;
-    --border: #2a2f3a;
-    --text: #e5e7eb;
-    --text-muted: #9199a8;
-    --primary: #3b82f6;
-    --primary-hover: #2563eb;
-    --danger: #ef4444;
-    --danger-hover: #dc2626;
-    --success: #22c55e;
-    --warn: #f59e0b;
-    --radius: 8px;
+    --bg: #050506;
+    --glass: rgba(255, 255, 255, 0.07);
+    --glass-strong: rgba(255, 255, 255, 0.11);
+    --glass-input: rgba(255, 255, 255, 0.06);
+    --card-bg: var(--glass);
+    --surface-alt: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.16);
+    --border-soft: rgba(255, 255, 255, 0.09);
+    --highlight: rgba(255, 255, 255, 0.34);
+    --text: #f1f4fb;
+    --text-muted: #a7a9b0;
+    --primary: #f2f3f5;
+    --primary-hover: #ffffff;
+    --danger: #ff5c6c;
+    --danger-hover: #ff7a87;
+    --success: #34d399;
+    --warn: #fbbf24;
+    --radius: 12px;
+    --blur: blur(22px) saturate(160%);
+    --shadow:
+      0 1px 1px rgba(0, 0, 0, 0.30),
+      0 6px 14px rgba(0, 0, 0, 0.25),
+      0 22px 44px rgba(0, 0, 0, 0.32);
+    --edge:
+      inset 0 1px 0 rgba(255, 255, 255, 0.38),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.07),
+      inset 1px 0 0 rgba(255, 255, 255, 0.10),
+      inset 0 0 24px rgba(255, 255, 255, 0.04);
+    --sheen: linear-gradient(165deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 38%, rgba(255, 255, 255, 0.02) 100%);
   }
   * { box-sizing: border-box; }
+  html { background: var(--bg); }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
-    background: var(--bg);
+    min-height: 100vh;
+    font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(900px 600px at 12% 8%, rgba(255, 255, 255, 0.16), transparent 60%),
+      radial-gradient(800px 600px at 88% 18%, rgba(190, 195, 210, 0.11), transparent 60%),
+      radial-gradient(900px 700px at 70% 95%, rgba(255, 255, 255, 0.10), transparent 60%),
+      radial-gradient(700px 500px at 5% 90%, rgba(160, 165, 180, 0.09), transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
     color: var(--text);
   }
   .hidden { display: none !important; }
   button {
+    font-family: inherit;
     cursor: pointer;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: var(--radius);
     padding: 8px 14px;
     font-size: 14px;
-    background: var(--primary);
-    color: #fff;
-    transition: background .15s;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 48%, rgba(255, 255, 255, 0) 50%),
+      linear-gradient(180deg, rgba(250, 250, 252, 0.96), rgba(176, 179, 188, 0.94));
+    color: #121316;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.55),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+      0 1px 2px rgba(0, 0, 0, 0.35),
+      0 6px 14px rgba(0, 0, 0, 0.45);
+    transition: background .15s, transform .15s, box-shadow .15s, filter .15s;
   }
-  button:hover { background: var(--primary-hover); }
-  button.secondary { background: #6b7280; }
-  button.secondary:hover { background: #4b5563; }
-  button.danger { background: var(--danger); }
-  button.danger:hover { background: var(--danger-hover); }
-  button.small { padding: 4px 10px; font-size: 12px; margin-right: 4px; }
+  button:hover { filter: brightness(1.12); transform: translateY(-2px); }
+  button:active { transform: translateY(1px); filter: brightness(.95); box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35), 0 1px 1px rgba(0, 0, 0, 0.3); }
+  button.secondary {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.08));
+    border-color: var(--border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(0, 0, 0, 0.2);
+  }
+  button.danger {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.34) 0%, rgba(255, 255, 255, 0.08) 48%, rgba(255, 255, 255, 0) 50%),
+      linear-gradient(180deg, rgba(255, 110, 124, 0.92), rgba(220, 38, 56, 0.88));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(220, 38, 56, 0.35);
+  }
+  button.secondary, button.danger, .tab-btn { color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); }
+  button.small { padding: 4px 10px; font-size: 12px; margin-right: 4px; border-radius: 9px; }
   input, select, textarea {
     width: 100%;
     padding: 8px 10px;
@@ -52,10 +97,28 @@
     border-radius: var(--radius);
     font-size: 14px;
     font-family: inherit;
-    background: var(--surface-alt);
+    background: var(--glass-input);
     color: var(--text);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.12);
+    transition: border-color .15s, box-shadow .15s, background .15s;
   }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(255, 255, 255, 0.20), 0 0 18px rgba(255, 255, 255, 0.12);
+  }
+  select option { background: #17181c; color: var(--text); }
   label { display: block; font-size: 13px; color: var(--text-muted); margin: 10px 0 4px; }
+
+  /* ---------- glass surface ---------- */
+  .glass, .login-box, header, nav.tabs, .card, table {
+    background: var(--sheen), var(--glass);
+    border-top-color: rgba(255, 255, 255, 0.34);
+    border-left-color: rgba(255, 255, 255, 0.20);
+    backdrop-filter: var(--blur);
+    -webkit-backdrop-filter: var(--blur);
+  }
 
   /* ---------- login ---------- */
   #login-view {
@@ -65,49 +128,58 @@
     justify-content: center;
   }
   .login-box {
-    background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 36px 32px;
-    width: 320px;
+    border-radius: 24px;
+    padding: 40px 34px;
+    width: 340px;
     text-align: center;
-    box-shadow: 0 4px 24px rgba(0,0,0,.5);
+    box-shadow: var(--shadow), var(--edge);
   }
-  .login-box h1 { margin: 0 0 4px; font-size: 22px; }
-  .login-box p { color: var(--text-muted); margin: 0 0 20px; font-size: 13px; }
+  .login-box h1 { margin: 0 0 4px; font-size: 24px; }
+  .login-box p { color: var(--text-muted); margin: 0 0 22px; font-size: 13px; }
   .login-box form { display: flex; flex-direction: column; gap: 10px; }
   .login-box button { margin-top: 6px; padding: 10px; }
   .error-text { color: var(--danger); font-size: 13px; min-height: 18px; margin: 10px 0 0; }
 
   /* ---------- app shell ---------- */
   header {
+    position: sticky; top: 0; z-index: 50;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 14px 24px;
-    background: var(--card-bg);
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.30), var(--edge);
   }
   header h1 { font-size: 18px; margin: 0; }
   .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted); }
 
   nav.tabs {
     display: flex;
-    gap: 4px;
-    padding: 10px 24px 0;
-    background: var(--card-bg);
-    border-bottom: 1px solid var(--border);
+    gap: 6px;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border-soft);
+    background: rgba(255, 255, 255, 0.04);
   }
   .tab-btn {
     background: transparent;
     color: var(--text-muted);
-    border-radius: var(--radius) var(--radius) 0 0;
-    padding: 10px 16px;
+    border: 1px solid transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: 999px;
+    padding: 8px 18px;
   }
-  .tab-btn:hover { background: var(--surface-alt); color: var(--text); }
-  .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); background: var(--surface-alt); }
+  .tab-btn:hover { background: var(--surface-alt); color: var(--text); filter: none; transform: none; }
+  .tab-btn.active {
+    color: #fff;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.10));
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 1px 2px rgba(0, 0, 0, 0.35), 0 6px 16px rgba(0, 0, 0, 0.45);
+  }
 
-  main, section.tab-content { padding: 20px 24px 60px; max-width: 1100px; margin: 0 auto; }
+  main, section.tab-content { padding: 24px 24px 60px; max-width: 1100px; margin: 0 auto; }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
@@ -115,33 +187,45 @@
   .section-header h2 { font-size: 16px; margin: 0; }
 
   .card {
-    background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px;
+    border-radius: 18px;
+    padding: 20px;
     margin-bottom: 16px;
+    box-shadow: var(--shadow), var(--edge);
+    transition: transform .2s ease, box-shadow .2s ease;
   }
   .form-box { margin-bottom: 16px; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
   .form-actions { margin-top: 16px; display: flex; gap: 8px; }
   .hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
-  table { width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: var(--radius); overflow: hidden; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: top; }
-  th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; }
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: var(--shadow), var(--edge);
+  }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border-soft); font-size: 13px; vertical-align: top; }
+  th { background: rgba(255, 255, 255, 0.07); color: var(--text-muted); font-weight: 600; }
+  tbody tr { transition: background .15s; }
+  tbody tr:hover { background: rgba(255, 255, 255, 0.05); }
   tr:last-child td { border-bottom: none; }
 
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 12px; font-weight: 600; }
-  .badge.ok, .badge.success, .badge.online { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
-  .badge.error, .badge.offline { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-  .badge.disabled { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
-  .badge.unknown { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; border: 1px solid transparent; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 1px 3px rgba(0, 0, 0, 0.3); }
+  .badge.ok, .badge.success, .badge.online { background: rgba(52, 211, 153, 0.18); color: #6ee7b7; border-color: rgba(52, 211, 153, 0.35); }
+  .badge.error, .badge.offline { background: rgba(255, 92, 108, 0.18); color: #ff9aa4; border-color: rgba(255, 92, 108, 0.35); }
+  .badge.disabled { background: rgba(148, 163, 184, 0.16); color: var(--text-muted); border-color: rgba(148, 163, 184, 0.3); }
+  .badge.unknown { background: rgba(251, 191, 36, 0.16); color: #fcd34d; border-color: rgba(251, 191, 36, 0.35); }
 
   .weekday-picker { display: flex; gap: 6px; flex-wrap: wrap; }
   .weekday-picker label {
     display: flex; align-items: center; gap: 4px;
-    border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 6px 10px; font-size: 13px; color: var(--text); cursor: pointer; margin: 0;
+    background: var(--glass-input);
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 12px; font-size: 13px; color: var(--text); cursor: pointer; margin: 0;
   }
   .weekday-picker input { width: auto; }
 
@@ -153,14 +237,17 @@
 
   .toast {
     position: fixed; bottom: 20px; right: 20px;
-    background: #1f2430; color: #fff; padding: 10px 16px;
-    border-radius: var(--radius); font-size: 13px; opacity: 0;
+    background: rgba(28, 29, 33, 0.65); color: #fff; padding: 11px 18px;
+    border: 1px solid var(--border);
+    backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+    box-shadow: var(--shadow), var(--edge);
+    border-radius: 14px; font-size: 13px; opacity: 0;
     transform: translateY(10px); transition: all .2s; pointer-events: none; z-index: 100;
     max-width: 360px; white-space: pre-wrap;
   }
   .toast.show { opacity: 1; transform: translateY(0); }
-  .toast.error { background: var(--danger); }
-  .toast.success { background: var(--success); }
+  .toast.error { background: rgba(255, 92, 108, 0.45); }
+  .toast.success { background: rgba(52, 211, 153, 0.4); }
 
   .msg-cell { max-width: 340px; white-space: pre-wrap; word-break: break-word; font-size: 12px; color: var(--text-muted); }
   .muted { color: var(--text-muted); }
@@ -169,26 +256,116 @@
   .radio-group input { width: auto; }
 
   button:disabled { opacity: .4; cursor: not-allowed; }
-  button:disabled:hover { filter: none; }
+  button:disabled:hover { filter: none; transform: none; }
 
   #console-overlay {
-    position: fixed; inset: 0; background: rgba(15, 18, 26, 0.85);
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
     z-index: 200; display: flex; align-items: center; justify-content: center;
   }
   #console-box {
     width: min(1000px, 92vw); height: min(640px, 86vh);
-    background: #1e1e1e; border-radius: 10px; overflow: hidden;
-    display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    background: rgba(14, 14, 16, 0.85);
+    border: 1px solid var(--border);
+    border-radius: 18px; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 2px 2px rgba(0,0,0,.35), 0 24px 70px rgba(0,0,0,.6), var(--edge);
   }
   #console-header {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 14px; background: #14161c; color: #e5e7eb; font-size: 13px;
+    padding: 10px 16px; background: rgba(255, 255, 255, 0.07); color: #e5e7eb; font-size: 13px;
+    border-bottom: 1px solid var(--border-soft);
   }
   #console-header .status { color: #9ca3af; }
-  #console-close-btn { background: #374151; padding: 4px 12px; }
-  #console-close-btn:hover { background: #4b5563; }
+  #console-close-btn { background: var(--glass-strong); color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); padding: 4px 12px; }
   #console-term-container { flex: 1; padding: 8px; overflow: hidden; }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 720px) {
+    body { background-attachment: scroll; }
+    .login-box { width: min(340px, calc(100vw - 32px)); padding: 32px 24px; }
+
+    header { padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top)); }
+    header h1 { font-size: 16px; }
+    .header-right { gap: 8px; }
+    #current-username { max-width: 8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* タブは横スクロール */
+    nav.tabs {
+      padding: 8px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    nav.tabs::-webkit-scrollbar { display: none; }
+    .tab-btn { flex: 0 0 auto; white-space: nowrap; padding: 8px 14px; }
+
+    main, section.tab-content { padding: 16px 14px 48px; padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+    .section-header { gap: 10px; flex-wrap: wrap; }
+    .card { padding: 16px; border-radius: 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-actions button { flex: 1; }
+
+    /* iOSで入力時に画面が拡大されないよう16px以上にする */
+    input, select, textarea { font-size: 16px; padding: 10px 12px; }
+    input[type="checkbox"], input[type="radio"] { width: auto; }
+
+    .filters > div { min-width: 0; flex: 1 1 100%; }
+    .filters button { width: 100%; }
+
+    /* テーブル → カード型リスト */
+    table, tbody, tr, td { display: block; width: 100%; }
+    table {
+      background: none; border: none; box-shadow: none; border-radius: 0; overflow: visible;
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    thead { display: none; }
+    tbody tr {
+      background: var(--sheen), var(--glass);
+      backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--border);
+      border-top-color: rgba(255, 255, 255, 0.34);
+      border-radius: 16px;
+      padding: 6px 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow), var(--edge);
+    }
+    tbody tr:hover { background: var(--sheen), var(--glass); }
+    td { padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+    tr td:last-child { border-bottom: none; }
+    td[data-label] {
+      display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: right;
+    }
+    td[data-label]::before {
+      content: attr(data-label);
+      flex: 0 0 auto; color: var(--text-muted); font-size: 12px; text-align: left;
+    }
+    td.cell-title { font-size: 15px; padding-top: 12px; }
+    td.cell-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0 10px; }
+    td.cell-actions button.small { flex: 1 1 calc(50% - 8px); margin: 0; padding: 10px 8px; font-size: 13px; white-space: nowrap; }
+    td.msg-cell { display: block; max-width: none; text-align: left; }
+    td.msg-cell::before { display: block; margin-bottom: 4px; }
+    td[colspan] { text-align: center; padding: 20px 0; }
+
+    .pagination { flex-wrap: wrap; }
+
+    .toast { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: none; }
+
+    /* Webコンソールは全画面 */
+    #console-box { width: 100vw; height: 100vh; height: 100dvh; max-width: none; border-radius: 0; border: none; }
+    #console-header { padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top)); }
+    #console-term-container { padding: 4px; }
+  }
+
+  /* backdrop-filter 非対応ブラウザ・透過軽減設定向けのフォールバック */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root { --glass: rgba(28, 29, 33, 0.92); --glass-strong: rgba(44, 45, 50, 0.95); }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    :root { --glass: rgba(28, 29, 33, 0.96); --glass-strong: rgba(44, 45, 50, 0.98); }
+  }
 </style>
+<link rel="stylesheet" href="/vendor/noto-sans-jp/fonts.css">
 <link rel="stylesheet" href="/vendor/xterm/xterm.css">
 </head>
 <body>
@@ -703,13 +880,13 @@ function renderServers() {
   }
   tbody.innerHTML = state.servers.map((s) => `
     <tr data-id="${s.id}">
-      <td><strong>${escapeHtml(s.name)}</strong><div class="hint">${escapeHtml(s.ssh_user)}@${escapeHtml(s.host)}:${s.ssh_port} / 認証情報: ${
+      <td class="cell-title"><strong>${escapeHtml(s.name)}</strong><div class="hint">${escapeHtml(s.ssh_user)}@${escapeHtml(s.host)}:${s.ssh_port} / 認証情報: ${
         s.credential_name ? escapeHtml(s.credential_name) : '<span style="color:var(--danger);">未設定</span>'
       }</div></td>
-      <td>${escapeHtml(s.host)}</td>
-      <td><span class="badge unknown" data-status-for="${s.id}">未確認</span></td>
-      <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
-      <td>
+      <td data-label="ホスト">${escapeHtml(s.host)}</td>
+      <td data-label="状態"><span class="badge unknown" data-status-for="${s.id}">未確認</span></td>
+      <td data-label="有効">${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
+      <td class="cell-actions">
         <button class="small" data-action="ping" data-id="${s.id}">疎通確認</button>
         <button class="small" data-action="console" data-id="${s.id}" data-console-for="${s.id}" disabled title="オンライン時のみ利用できます">端末</button>
         <button class="small" data-action="start" data-id="${s.id}">起動</button>
@@ -794,7 +971,7 @@ async function openConsole(server) {
   const term = new Terminal({
     fontSize: 14,
     cursorBlink: true,
-    theme: { background: "#1e1e1e" },
+    theme: { background: "#0e0e10" },
   });
   const fitAddon = new FitAddon.FitAddon();
   term.loadAddon(fitAddon);
@@ -939,10 +1116,10 @@ function renderCredentials() {
   }
   tbody.innerHTML = state.credentials.map((c) => `
     <tr data-id="${c.id}">
-      <td><strong>${escapeHtml(c.name)}</strong></td>
-      <td>${c.auth_type === "key" ? "秘密鍵" : "パスワード"}</td>
-      <td>${formatDateTime(c.created_at)}</td>
-      <td>
+      <td class="cell-title"><strong>${escapeHtml(c.name)}</strong></td>
+      <td data-label="認証方式">${c.auth_type === "key" ? "秘密鍵" : "パスワード"}</td>
+      <td data-label="作成日時">${formatDateTime(c.created_at)}</td>
+      <td class="cell-actions">
         <button class="small secondary" data-action="edit" data-id="${c.id}">編集</button>
         <button class="small danger" data-action="delete" data-id="${c.id}">削除</button>
       </td>
@@ -1053,11 +1230,11 @@ function renderSchedules() {
   }
   tbody.innerHTML = state.schedules.map((s) => `
     <tr data-id="${s.id}">
-      <td>${escapeHtml(s.server_name || "(削除済み)")}</td>
-      <td>${s.action === "shutdown" ? "シャットダウン" : "起動(WOL)"}</td>
-      <td><code>${escapeHtml(s.cron_expression)}</code></td>
-      <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
-      <td>
+      <td class="cell-title">${escapeHtml(s.server_name || "(削除済み)")}</td>
+      <td data-label="アクション">${s.action === "shutdown" ? "シャットダウン" : "起動(WOL)"}</td>
+      <td data-label="cron"><code>${escapeHtml(s.cron_expression)}</code></td>
+      <td data-label="有効">${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
+      <td class="cell-actions">
         <button class="small secondary" data-action="edit" data-id="${s.id}">編集</button>
         <button class="small danger" data-action="delete" data-id="${s.id}">削除</button>
       </td>
@@ -1106,12 +1283,12 @@ function renderLogs() {
   } else {
     tbody.innerHTML = state.logs.items.map((l) => `
       <tr>
-        <td>${formatDateTime(l.started_at)}</td>
-        <td>${escapeHtml(l.server_name || "-")}</td>
-        <td>${l.action === "shutdown" ? "シャットダウン" : "起動"}</td>
-        <td>${escapeHtml(l.triggered_by)}</td>
-        <td><span class="badge ${l.status}">${l.status === "success" ? "成功" : "失敗"}</span></td>
-        <td class="msg-cell">${escapeHtml(l.message || "")}</td>
+        <td data-label="日時">${formatDateTime(l.started_at)}</td>
+        <td data-label="サーバー">${escapeHtml(l.server_name || "-")}</td>
+        <td data-label="アクション">${l.action === "shutdown" ? "シャットダウン" : "起動"}</td>
+        <td data-label="トリガー">${escapeHtml(l.triggered_by)}</td>
+        <td data-label="結果"><span class="badge ${l.status}">${l.status === "success" ? "成功" : "失敗"}</span></td>
+        <td class="msg-cell" data-label="メッセージ">${escapeHtml(l.message || "")}</td>
       </tr>
     `).join("");
   }
@@ -1168,9 +1345,9 @@ async function refreshUsers() {
   const tbody = document.getElementById("users-tbody");
   tbody.innerHTML = users.map((u) => `
     <tr data-id="${u.id}">
-      <td>${escapeHtml(u.username)}</td>
-      <td>${formatDateTime(u.created_at)}</td>
-      <td>
+      <td class="cell-title">${escapeHtml(u.username)}</td>
+      <td data-label="作成日時">${formatDateTime(u.created_at)}</td>
+      <td class="cell-actions">
         <button class="small secondary" data-action="passwd" data-id="${u.id}">パスワード変更</button>
         <button class="small danger" data-action="delete" data-id="${u.id}">削除</button>
       </td>
