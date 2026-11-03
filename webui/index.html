@@ -277,8 +277,85 @@
     border-bottom: 1px solid var(--border-soft);
   }
   #console-header .status { color: #9ca3af; }
-  #console-close-btn { background: var(--glass-strong); padding: 4px 12px; }
+  #console-close-btn { background: var(--glass-strong); color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4); padding: 4px 12px; }
   #console-term-container { flex: 1; padding: 8px; overflow: hidden; }
+
+  /* ---------- mobile ---------- */
+  @media (max-width: 720px) {
+    body { background-attachment: scroll; }
+    .login-box { width: min(340px, calc(100vw - 32px)); padding: 32px 24px; }
+
+    header { padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top)); }
+    header h1 { font-size: 16px; }
+    .header-right { gap: 8px; }
+    #current-username { max-width: 8em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* タブは横スクロール */
+    nav.tabs {
+      padding: 8px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    nav.tabs::-webkit-scrollbar { display: none; }
+    .tab-btn { flex: 0 0 auto; white-space: nowrap; padding: 8px 14px; }
+
+    main, section.tab-content { padding: 16px 14px 48px; padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+    .section-header { gap: 10px; flex-wrap: wrap; }
+    .card { padding: 16px; border-radius: 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-actions button { flex: 1; }
+
+    /* iOSで入力時に画面が拡大されないよう16px以上にする */
+    input, select, textarea { font-size: 16px; padding: 10px 12px; }
+    input[type="checkbox"], input[type="radio"] { width: auto; }
+
+    .filters > div { min-width: 0; flex: 1 1 100%; }
+    .filters button { width: 100%; }
+
+    /* テーブル → カード型リスト */
+    table, tbody, tr, td { display: block; width: 100%; }
+    table {
+      background: none; border: none; box-shadow: none; border-radius: 0; overflow: visible;
+      backdrop-filter: none; -webkit-backdrop-filter: none;
+    }
+    thead { display: none; }
+    tbody tr {
+      background: var(--sheen), var(--glass);
+      backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--border);
+      border-top-color: rgba(255, 255, 255, 0.34);
+      border-radius: 16px;
+      padding: 6px 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow), var(--edge);
+    }
+    tbody tr:hover { background: var(--sheen), var(--glass); }
+    td { padding: 8px 0; border-bottom: 1px solid var(--border-soft); }
+    tr td:last-child { border-bottom: none; }
+    td[data-label] {
+      display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: right;
+    }
+    td[data-label]::before {
+      content: attr(data-label);
+      flex: 0 0 auto; color: var(--text-muted); font-size: 12px; text-align: left;
+    }
+    td.cell-title { font-size: 15px; padding-top: 12px; }
+    td.cell-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0 10px; }
+    td.cell-actions button.small { flex: 1 1 calc(50% - 8px); margin: 0; padding: 10px 8px; font-size: 13px; white-space: nowrap; }
+    td.msg-cell { display: block; max-width: none; text-align: left; }
+    td.msg-cell::before { display: block; margin-bottom: 4px; }
+    td[colspan] { text-align: center; padding: 20px 0; }
+
+    .pagination { flex-wrap: wrap; }
+
+    .toast { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: none; }
+
+    /* Webコンソールは全画面 */
+    #console-box { width: 100vw; height: 100vh; height: 100dvh; max-width: none; border-radius: 0; border: none; }
+    #console-header { padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top)); }
+    #console-term-container { padding: 4px; }
+  }
 
   /* backdrop-filter 非対応ブラウザ・透過軽減設定向けのフォールバック */
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -803,13 +880,13 @@ function renderServers() {
   }
   tbody.innerHTML = state.servers.map((s) => `
     <tr data-id="${s.id}">
-      <td><strong>${escapeHtml(s.name)}</strong><div class="hint">${escapeHtml(s.ssh_user)}@${escapeHtml(s.host)}:${s.ssh_port} / 認証情報: ${
+      <td class="cell-title"><strong>${escapeHtml(s.name)}</strong><div class="hint">${escapeHtml(s.ssh_user)}@${escapeHtml(s.host)}:${s.ssh_port} / 認証情報: ${
         s.credential_name ? escapeHtml(s.credential_name) : '<span style="color:var(--danger);">未設定</span>'
       }</div></td>
-      <td>${escapeHtml(s.host)}</td>
-      <td><span class="badge unknown" data-status-for="${s.id}">未確認</span></td>
-      <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
-      <td>
+      <td data-label="ホスト">${escapeHtml(s.host)}</td>
+      <td data-label="状態"><span class="badge unknown" data-status-for="${s.id}">未確認</span></td>
+      <td data-label="有効">${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
+      <td class="cell-actions">
         <button class="small" data-action="ping" data-id="${s.id}">疎通確認</button>
         <button class="small" data-action="console" data-id="${s.id}" data-console-for="${s.id}" disabled title="オンライン時のみ利用できます">端末</button>
         <button class="small" data-action="start" data-id="${s.id}">起動</button>
@@ -1039,10 +1116,10 @@ function renderCredentials() {
   }
   tbody.innerHTML = state.credentials.map((c) => `
     <tr data-id="${c.id}">
-      <td><strong>${escapeHtml(c.name)}</strong></td>
-      <td>${c.auth_type === "key" ? "秘密鍵" : "パスワード"}</td>
-      <td>${formatDateTime(c.created_at)}</td>
-      <td>
+      <td class="cell-title"><strong>${escapeHtml(c.name)}</strong></td>
+      <td data-label="認証方式">${c.auth_type === "key" ? "秘密鍵" : "パスワード"}</td>
+      <td data-label="作成日時">${formatDateTime(c.created_at)}</td>
+      <td class="cell-actions">
         <button class="small secondary" data-action="edit" data-id="${c.id}">編集</button>
         <button class="small danger" data-action="delete" data-id="${c.id}">削除</button>
       </td>
@@ -1153,11 +1230,11 @@ function renderSchedules() {
   }
   tbody.innerHTML = state.schedules.map((s) => `
     <tr data-id="${s.id}">
-      <td>${escapeHtml(s.server_name || "(削除済み)")}</td>
-      <td>${s.action === "shutdown" ? "シャットダウン" : "起動(WOL)"}</td>
-      <td><code>${escapeHtml(s.cron_expression)}</code></td>
-      <td>${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
-      <td>
+      <td class="cell-title">${escapeHtml(s.server_name || "(削除済み)")}</td>
+      <td data-label="アクション">${s.action === "shutdown" ? "シャットダウン" : "起動(WOL)"}</td>
+      <td data-label="cron"><code>${escapeHtml(s.cron_expression)}</code></td>
+      <td data-label="有効">${s.enabled ? '<span class="badge ok">有効</span>' : '<span class="badge disabled">無効</span>'}</td>
+      <td class="cell-actions">
         <button class="small secondary" data-action="edit" data-id="${s.id}">編集</button>
         <button class="small danger" data-action="delete" data-id="${s.id}">削除</button>
       </td>
@@ -1206,12 +1283,12 @@ function renderLogs() {
   } else {
     tbody.innerHTML = state.logs.items.map((l) => `
       <tr>
-        <td>${formatDateTime(l.started_at)}</td>
-        <td>${escapeHtml(l.server_name || "-")}</td>
-        <td>${l.action === "shutdown" ? "シャットダウン" : "起動"}</td>
-        <td>${escapeHtml(l.triggered_by)}</td>
-        <td><span class="badge ${l.status}">${l.status === "success" ? "成功" : "失敗"}</span></td>
-        <td class="msg-cell">${escapeHtml(l.message || "")}</td>
+        <td data-label="日時">${formatDateTime(l.started_at)}</td>
+        <td data-label="サーバー">${escapeHtml(l.server_name || "-")}</td>
+        <td data-label="アクション">${l.action === "shutdown" ? "シャットダウン" : "起動"}</td>
+        <td data-label="トリガー">${escapeHtml(l.triggered_by)}</td>
+        <td data-label="結果"><span class="badge ${l.status}">${l.status === "success" ? "成功" : "失敗"}</span></td>
+        <td class="msg-cell" data-label="メッセージ">${escapeHtml(l.message || "")}</td>
       </tr>
     `).join("");
   }
@@ -1268,9 +1345,9 @@ async function refreshUsers() {
   const tbody = document.getElementById("users-tbody");
   tbody.innerHTML = users.map((u) => `
     <tr data-id="${u.id}">
-      <td>${escapeHtml(u.username)}</td>
-      <td>${formatDateTime(u.created_at)}</td>
-      <td>
+      <td class="cell-title">${escapeHtml(u.username)}</td>
+      <td data-label="作成日時">${formatDateTime(u.created_at)}</td>
+      <td class="cell-actions">
         <button class="small secondary" data-action="passwd" data-id="${u.id}">パスワード変更</button>
         <button class="small danger" data-action="delete" data-id="${u.id}">削除</button>
       </td>
