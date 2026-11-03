@@ -1,0 +1,72 @@
+/* noto-sans-jp-japanese-400-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(./files/noto-sans-jp-japanese-400-normal.woff2) format('woff2');
+}
+/* noto-sans-jp-latin-400-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(./files/noto-sans-jp-latin-400-normal.woff2) format('woff2');
+}
+/* noto-sans-jp-latin-ext-400-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(./files/noto-sans-jp-latin-ext-400-normal.woff2) format('woff2');
+}
+/* noto-sans-jp-japanese-500-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(./files/noto-sans-jp-japanese-500-normal.woff2) format('woff2');
+}
+/* noto-sans-jp-latin-500-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(./files/noto-sans-jp-latin-500-normal.woff2) format('woff2');
+}
+/* noto-sans-jp-latin-ext-500-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url(./files/noto-sans-jp-latin-ext-500-normal.woff2) format('woff2');
+}
+/* noto-sans-jp-japanese-700-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(./files/noto-sans-jp-japanese-700-normal.woff2) format('woff2');
+}
+/* noto-sans-jp-latin-700-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(./files/noto-sans-jp-latin-700-normal.woff2) format('woff2');
+}
+/* noto-sans-jp-latin-ext-700-normal */
+@font-face {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url(./files/noto-sans-jp-latin-ext-700-normal.woff2) format('woff2');
+}
